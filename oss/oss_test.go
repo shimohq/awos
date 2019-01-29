@@ -1,8 +1,8 @@
 package oss
 
 /**
-	AccessKeyId=${accessKeyId} AccessKeySecret=${accessKeySecret} bucket=${bucket} go test -v oss_test.go oss.go
- */
+AccessKeyId=${accessKeyId} AccessKeySecret=${accessKeySecret} bucket=${bucket} Endpoint=${endpoint} go test -v oss_test.go oss.go
+*/
 
 import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
@@ -12,18 +12,18 @@ import (
 )
 
 const (
-	guid = "test123"
-	content = "aaaaaa"
+	guid         = "test123"
+	content      = "aaaaaa"
 	expectLength = 6
-	expectHead = 1
+	expectHead   = 1
 )
 
 var (
 	ossClient *OSS
 )
 
-func TestMain(m *testing.M)  {
-	client, err := oss.New("http://oss-cn-beijing.aliyuncs.com", os.Getenv("AccessKeyId"),
+func TestMain(m *testing.M) {
+	client, err := oss.New(os.Getenv("Endpoint"), os.Getenv("AccessKeyId"),
 		os.Getenv("AccessKeySecret"))
 	if err != nil {
 		panic(err)
@@ -105,7 +105,7 @@ func TestOSS_Del(t *testing.T) {
 	}
 }
 
-func TestOSS_GetNotExist(t *testing.T)  {
+func TestOSS_GetNotExist(t *testing.T) {
 	res1, err := ossClient.Get(guid + "123")
 	if res1 != "" || err != nil {
 		t.Log("oss get not exist key fail, res:", res1, "err:", err)
@@ -114,7 +114,7 @@ func TestOSS_GetNotExist(t *testing.T)  {
 
 	attributes := make([]string, 0)
 	attributes = append(attributes, "head")
-	res2, err := ossClient.Head(guid + "123", attributes)
+	res2, err := ossClient.Head(guid+"123", attributes)
 	if res2 != nil || err != nil {
 		t.Log("oss head not exist key fail, res:", res2, "err:", err)
 		t.Fail()
