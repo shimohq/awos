@@ -47,7 +47,7 @@ const (
 	S3Storage  = "aws"
 )
 
-func New(options *Options) (*Client, error) {
+func New(options *Options) (Client, error) {
 	var miossClient Client
 
 	if options.Storage == OSSStorage {
@@ -67,7 +67,7 @@ func New(options *Options) (*Client, error) {
 		}
 		miossClient = ossClient
 
-		return &miossClient, nil
+		return miossClient, nil
 	} else if options.Storage == S3Storage {
 		awsConfig := options.Aws
 		var sess *session.Session
@@ -96,7 +96,7 @@ func New(options *Options) (*Client, error) {
 		}
 		miossClient = awsClient
 
-		return &miossClient, nil
+		return miossClient, nil
 	} else {
 		return nil, errors.New("options.storage should be oss or aws")
 	}
