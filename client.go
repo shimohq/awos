@@ -19,9 +19,9 @@ type Client interface {
 }
 
 type Options struct {
-	storage string
-	oss     *OSSOptions
-	aws     *AWSOptions
+	Storage string
+	Oss     *OSSOptions
+	Aws     *AWSOptions
 }
 
 type OSSOptions struct {
@@ -50,8 +50,8 @@ const (
 func New(options *Options) (*Client, error) {
 	var miossClient Client
 
-	if options.storage == OSSStorage {
-		ossConfig := options.oss
+	if options.Storage == OSSStorage {
+		ossConfig := options.Oss
 		client, err := oss.New(ossConfig.Endpoint, ossConfig.AccessKeyId, ossConfig.AccessKeySecret)
 		if err != nil {
 			return nil, err
@@ -68,8 +68,8 @@ func New(options *Options) (*Client, error) {
 		miossClient = ossClient
 
 		return &miossClient, nil
-	} else if options.storage == S3Storage {
-		awsConfig := options.aws
+	} else if options.Storage == S3Storage {
+		awsConfig := options.Aws
 		var sess *session.Session
 
 		// use minio
