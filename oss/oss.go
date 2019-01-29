@@ -39,13 +39,15 @@ func (ossClient *OSS) Get(objectName string) (string, error) {
 
 func (ossClient *OSS) Put(key string, data string, meta map[string]string) error {
 	options := make([]oss.Option, 0)
-	for k, v := range meta {
-		options = append(options, oss.Meta(k, v))
+	if meta != nil {
+		for k, v := range meta {
+			options = append(options, oss.Meta(k, v))
+		}
 	}
 
 	return retry.Do(func() error {
 		return ossClient.Bucket.PutObject(key, strings.NewReader(data), options...)
-	}, retry.Attempts(3), retry.Delay(1 * time.Second))
+	}, retry.Attempts(3), retry.Delay(1*time.Second))
 }
 
 func (ossClient *OSS) Del(key string) error {
