@@ -29,6 +29,7 @@ type OSSOptions struct {
 	AccessKeySecret string
 	Endpoint        string
 	Bucket          string
+	Shards          []string
 }
 
 type AWSOptions struct {
@@ -38,6 +39,7 @@ type AWSOptions struct {
 	SSL             bool
 	Region          string
 	Bucket          string
+	Shards          []string
 	// set S3ForcePathStyle = true when use minio
 	S3ForcePathStyle bool
 }
@@ -57,14 +59,33 @@ func New(options *Options) (Client, error) {
 			return nil, err
 		}
 
-		bucket, err := client.Bucket(ossConfig.Bucket)
-		if err != nil {
-			return nil, err
+		var ossClient *osstorage.OSS
+		if ossConfig.Shards != nil && len(ossConfig.Shards) > 0 {
+			buckets := make(map[string]*oss.Bucket)
+			for _, v := range ossConfig.Shards {
+				bucket, err := client.Bucket(ossConfig.Bucket + v)
+				if err != nil {
+					return nil, err
+				}
+				for i := 0; i < len(v); i++ {
+					buckets[v[i:i+1]] = bucket
+				}
+			}
+
+			ossClient = &osstorage.OSS{
+				Shards: buckets,
+			}
+		} else {
+			bucket, err := client.Bucket(ossConfig.Bucket)
+			if err != nil {
+				return nil, err
+			}
+
+			ossClient = &osstorage.OSS{
+				Bucket: bucket,
+			}
 		}
 
-		ossClient := &osstorage.OSS{
-			Bucket: bucket,
-		}
 		miossClient = ossClient
 
 		return miossClient, nil
@@ -88,12 +109,27 @@ func New(options *Options) (Client, error) {
 				Credentials: credentials.NewStaticCredentials(awsConfig.AccessKeyId, awsConfig.AccessKeySecret, ""),
 			}))
 		}
-
 		service := s3.New(sess)
-		awsClient := &awss3.AWS{
-			BucketName: awsConfig.Bucket,
-			Client:     service,
+
+		var awsClient *awss3.AWS
+		if awsConfig.Shards != nil && len(awsConfig.Shards) > 0 {
+			buckets := make(map[string]string)
+			for _, v := range awsConfig.Shards {
+				for i := 0; i < len(v); i++ {
+					buckets[v[i:i+1]] = v
+				}
+			}
+			awsClient = &awss3.AWS{
+				ShardsBucket: buckets,
+				Client:       service,
+			}
+		} else {
+			awsClient = &awss3.AWS{
+				BucketName: awsConfig.Bucket,
+				Client:     service,
+			}
 		}
+
 		miossClient = awsClient
 
 		return miossClient, nil
