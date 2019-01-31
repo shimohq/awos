@@ -1,9 +1,8 @@
 package aws
 
 /**
-	AccessKeyId=${accessKeyId} AccessKeySecret=${accessKeySecret} Endpoint=${endpoint} Bucket=${bucket}
-    go test -v aws_test.go aws.go
- */
+AccessKeyId=${accessKeyId} AccessKeySecret=${accessKeySecret} Endpoint=${endpoint} Bucket=${bucket} go test -v aws_test.go aws.go
+*/
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,22 +15,22 @@ import (
 )
 
 const (
-	guid = "test123"
-	content = "aaaaaa"
+	guid         = "test123"
+	content      = "aaaaaa"
 	expectLength = 6
-	expectHead = 1
+	expectHead   = 1
 )
 
 var (
 	awsClient *AWS
 )
 
-func TestMain(m *testing.M)  {
+func TestMain(m *testing.M) {
 	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String("cn-north-1"),
-		DisableSSL: aws.Bool(true),
-		Credentials: credentials.NewStaticCredentials(os.Getenv("AccessKeyId"), os.Getenv("AccessKeySecret"), ""),
-		Endpoint: aws.String(os.Getenv("Endpoint")),
+		Region:           aws.String("cn-north-1"),
+		DisableSSL:       aws.Bool(true),
+		Credentials:      credentials.NewStaticCredentials(os.Getenv("AccessKeyId"), os.Getenv("AccessKeySecret"), ""),
+		Endpoint:         aws.String(os.Getenv("Endpoint")),
 		S3ForcePathStyle: aws.Bool(true),
 	}))
 
@@ -39,7 +38,7 @@ func TestMain(m *testing.M)  {
 
 	awsClient = &AWS{
 		BucketName: os.Getenv("Bucket"),
-		Client: service,
+		Client:     service,
 	}
 
 	m.Run()
@@ -109,7 +108,7 @@ func TestAWS_Del(t *testing.T) {
 	}
 }
 
-func TestAWS_GetNotExist(t *testing.T)  {
+func TestAWS_GetNotExist(t *testing.T) {
 	res1, err := awsClient.Get(guid + "123")
 	if res1 != "" || err != nil {
 		t.Log("aws get not exist key fail, res:", res1, "err:", err)
@@ -118,7 +117,7 @@ func TestAWS_GetNotExist(t *testing.T)  {
 
 	attributes := make([]string, 0)
 	attributes = append(attributes, "head")
-	res2, err := awsClient.Head(guid + "123", attributes)
+	res2, err := awsClient.Head(guid+"123", attributes)
 	if res2 != nil || err != nil {
 		t.Log("aws head not exist key fail, res:", res2, "err:", err, err.Error())
 		t.Fail()

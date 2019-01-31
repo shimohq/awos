@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"github.com/avast/retry-go"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -12,14 +13,34 @@ import (
 )
 
 type AWS struct {
-	BucketName string
-	Client     *s3.S3
+	ShardsBucket map[string]string
+	BucketName   string
+	Client       *s3.S3
 }
 
-func (a *AWS) Get(objectName string) (string, error) {
+func (a *AWS) getBucket(key string) (string, error) {
+	if a.ShardsBucket != nil && len(a.ShardsBucket) > 0 {
+		keyLength := len(key)
+		bucketName := a.ShardsBucket[key[keyLength-1:keyLength]]
+		if bucketName == "" {
+			return "", errors.New("shards can't find bucket")
+		}
+
+		return bucketName, nil
+	}
+
+	return a.BucketName, nil
+}
+
+func (a *AWS) Get(key string) (string, error) {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return "", err
+	}
+
 	input := &s3.GetObjectInput{
-		Bucket: aws.String(a.BucketName),
-		Key:    aws.String(objectName),
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
 	}
 
 	result, err := a.Client.GetObject(input)
@@ -50,34 +71,49 @@ func (a *AWS) Get(objectName string) (string, error) {
 }
 
 func (a *AWS) Put(key string, data string, meta map[string]string) error {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return err
+	}
+
 	input := &s3.PutObjectInput{
-		Body:   io.ReadSeeker(strings.NewReader(data)),
-		Bucket: aws.String(a.BucketName),
-		Key:    aws.String(key),
+		Body:     io.ReadSeeker(strings.NewReader(data)),
+		Bucket:   aws.String(bucketName),
+		Key:      aws.String(key),
 		Metadata: aws.StringMap(meta),
 	}
 
-	err := retry.Do(func() error {
+	err = retry.Do(func() error {
 		_, err := a.Client.PutObject(input)
 		return err
-	}, retry.Attempts(3), retry.Delay(1 * time.Second))
+	}, retry.Attempts(3), retry.Delay(1*time.Second))
 
 	return err
 }
 
 func (a *AWS) Del(key string) error {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return err
+	}
+
 	input := &s3.DeleteObjectInput{
-		Bucket: aws.String(a.BucketName),
+		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
 	}
 
-	_, err := a.Client.DeleteObject(input)
+	_, err = a.Client.DeleteObject(input)
 	return err
 }
 
 func (a *AWS) Head(key string, meta []string) (map[string]string, error) {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
 	input := &s3.HeadObjectInput{
-		Bucket: aws.String(a.BucketName),
+		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
 	}
 

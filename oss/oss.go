@@ -1,6 +1,7 @@
 package oss
 
 import (
+	"errors"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/avast/retry-go"
 	"io/ioutil"
@@ -10,10 +11,30 @@ import (
 
 type OSS struct {
 	Bucket *oss.Bucket
+	Shards map[string]*oss.Bucket
 }
 
-func (ossClient *OSS) Get(objectName string) (string, error) {
-	body, err := ossClient.Bucket.GetObject(objectName)
+func (ossClient *OSS) getBucket(key string) (*oss.Bucket, error) {
+	if ossClient.Shards != nil && len(ossClient.Shards) > 0 {
+		keyLength := len(key)
+		bucket := ossClient.Shards[key[keyLength-1:keyLength]]
+		if bucket == nil {
+			return nil, errors.New("shards can't find bucket")
+		}
+
+		return bucket, nil
+	}
+
+	return ossClient.Bucket, nil
+}
+
+func (ossClient *OSS) Get(key string) (string, error) {
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return "", err
+	}
+
+	body, err := bucket.GetObject(key)
 	defer func() {
 		if body != nil {
 			body.Close()
@@ -38,6 +59,11 @@ func (ossClient *OSS) Get(objectName string) (string, error) {
 }
 
 func (ossClient *OSS) Put(key string, data string, meta map[string]string) error {
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return err
+	}
+
 	options := make([]oss.Option, 0)
 	if meta != nil {
 		for k, v := range meta {
@@ -46,16 +72,26 @@ func (ossClient *OSS) Put(key string, data string, meta map[string]string) error
 	}
 
 	return retry.Do(func() error {
-		return ossClient.Bucket.PutObject(key, strings.NewReader(data), options...)
+		return bucket.PutObject(key, strings.NewReader(data), options...)
 	}, retry.Attempts(3), retry.Delay(1*time.Second))
 }
 
 func (ossClient *OSS) Del(key string) error {
-	return ossClient.Bucket.DeleteObject(key)
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return err
+	}
+
+	return bucket.DeleteObject(key)
 }
 
 func (ossClient *OSS) Head(key string, attributes []string) (map[string]string, error) {
-	headers, err := ossClient.Bucket.GetObjectDetailedMeta(key)
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
+	headers, err := bucket.GetObjectDetailedMeta(key)
 	if err != nil {
 		if oerr, ok := err.(oss.ServiceError); ok {
 			if oerr.StatusCode == 404 {
