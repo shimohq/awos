@@ -17,7 +17,7 @@ type OSS struct {
 func (ossClient *OSS) getBucket(key string) (*oss.Bucket, error) {
 	if ossClient.Shards != nil && len(ossClient.Shards) > 0 {
 		keyLength := len(key)
-		bucket := ossClient.Shards[key[keyLength-1:keyLength]]
+		bucket := ossClient.Shards[strings.ToLower(key[keyLength-1:keyLength])]
 		if bucket == nil {
 			return nil, errors.New("shards can't find bucket")
 		}

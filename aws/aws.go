@@ -21,7 +21,7 @@ type AWS struct {
 func (a *AWS) getBucket(key string) (string, error) {
 	if a.ShardsBucket != nil && len(a.ShardsBucket) > 0 {
 		keyLength := len(key)
-		bucketName := a.ShardsBucket[key[keyLength-1:keyLength]]
+		bucketName := a.ShardsBucket[strings.ToLower(key[keyLength-1:keyLength])]
 		if bucketName == "" {
 			return "", errors.New("shards can't find bucket")
 		}

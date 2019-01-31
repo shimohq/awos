@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	awss3 "github.com/shimohq/awos/aws"
 	osstorage "github.com/shimohq/awos/oss"
+	"strings"
 )
 
 type Client interface {
@@ -68,7 +69,7 @@ func New(options *Options) (Client, error) {
 					return nil, err
 				}
 				for i := 0; i < len(v); i++ {
-					buckets[v[i:i+1]] = bucket
+					buckets[strings.ToLower(v[i:i+1])] = bucket
 				}
 			}
 
@@ -116,7 +117,7 @@ func New(options *Options) (Client, error) {
 			buckets := make(map[string]string)
 			for _, v := range awsConfig.Shards {
 				for i := 0; i < len(v); i++ {
-					buckets[v[i:i+1]] = awsConfig.Bucket + "-" + v
+					buckets[strings.ToLower(v[i:i+1])] = awsConfig.Bucket + "-" + v
 				}
 			}
 			awsClient = &awss3.AWS{
