@@ -63,7 +63,7 @@ func New(options *Options) (Client, error) {
 		if ossConfig.Shards != nil && len(ossConfig.Shards) > 0 {
 			buckets := make(map[string]*oss.Bucket)
 			for _, v := range ossConfig.Shards {
-				bucket, err := client.Bucket(ossConfig.Bucket + v)
+				bucket, err := client.Bucket(ossConfig.Bucket + "-" + v)
 				if err != nil {
 					return nil, err
 				}
@@ -116,7 +116,7 @@ func New(options *Options) (Client, error) {
 			buckets := make(map[string]string)
 			for _, v := range awsConfig.Shards {
 				for i := 0; i < len(v); i++ {
-					buckets[v[i:i+1]] = v
+					buckets[v[i:i+1]] = awsConfig.Bucket + "-" + v
 				}
 			}
 			awsClient = &awss3.AWS{
