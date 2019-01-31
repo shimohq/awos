@@ -3,6 +3,7 @@ AWOS: Wrapper For OSS And AWS(MINIO)
 
 ## feat
 
+- enable shards bucket
 - add retry strategy
 - avoid 404 status code:
     - `Get(objectName string) (string, error)` will return `"", nil` when object not exist
@@ -50,6 +51,21 @@ awsClient, err := awos.New(&awos.Options{
         Region: "cn-north-1",
         Endpoint: "your endpoint",
         S3ForcePathStyle: true,
+    },
+})
+```
+
+### shards bucket（same usage for aws）
+
+```
+awsClient, _ := awos.New(&awos.Options{
+    Storage: awos.OSSStorage,
+    Oss: &awos.OSSOptions{
+        AccessKeyId: "your accessKeyId",
+        AccessKeySecret: "your accessKeySecret",
+        Bucket: "your bucket",
+        Shards: []string{"bucket-suffix1", "bucket-suffix2"},
+        Endpoint: "your endpoint",
     },
 })
 ```
