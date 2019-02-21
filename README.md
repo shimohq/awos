@@ -21,7 +21,7 @@ go get github.com/shimohq/awos
 
 ### for oss
 
-```
+```golang
 import "github.com/shimohq/awos"
 
 ossClient, err := awos.New(&awos.Options{
@@ -37,7 +37,7 @@ ossClient, err := awos.New(&awos.Options{
 
 ### for aws(minio)
 
-```
+```golang
 import "github.com/shimohq/awos"
 
 awsClient, err := awos.New(&awos.Options{
@@ -57,7 +57,7 @@ awsClient, err := awos.New(&awos.Options{
 
 ### shards bucket（same usage for aws）
 
-```
+```golang
 awsClient, _ := awos.New(&awos.Options{
     Storage: awos.OSSStorage,
     Oss: &awos.OSSOptions{
@@ -72,7 +72,7 @@ awsClient, _ := awos.New(&awos.Options{
 
 the available operation：
 
-```
+```golang
 Get(objectName string) (string, error)
 Put(key string, data string, meta map[string]string) error
 Del(key string) error
