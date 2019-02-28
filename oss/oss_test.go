@@ -97,6 +97,14 @@ func TestOSS_Get(t *testing.T) {
 	}
 }
 
+func TestOSS_ListObject(t *testing.T) {
+	res, err := ossClient.ListObject(guid, guid[0:4], "", 10, "")
+	if err != nil || len(res) == 0 {
+		t.Log("oss list objects fail, res:", res, "err:", err)
+		t.Fail()
+	}
+}
+
 func TestOSS_Del(t *testing.T) {
 	err := ossClient.Del(guid)
 	if err != nil {

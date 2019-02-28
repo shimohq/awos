@@ -100,6 +100,14 @@ func TestAWS_Get(t *testing.T) {
 	}
 }
 
+func TestOSS_ListObject(t *testing.T) {
+	res, err := awsClient.ListObject(guid, guid[0:4], "", 10, "")
+	if err != nil || len(res) == 0 {
+		t.Log("aws list objects fail, res:", res, "err:", err)
+		t.Fail()
+	}
+}
+
 func TestAWS_Del(t *testing.T) {
 	err := awsClient.Del(guid)
 	if err != nil {

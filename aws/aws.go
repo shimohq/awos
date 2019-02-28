@@ -140,3 +140,38 @@ func (a *AWS) Head(key string, meta []string) (map[string]string, error) {
 
 	return res, nil
 }
+
+func (a *AWS) ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error) {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
+	input := &s3.ListObjectsInput{
+		Bucket: aws.String(bucketName),
+	}
+	if prefix != "" {
+		input.Prefix = aws.String(prefix)
+	}
+	if marker != "" {
+		input.Marker = aws.String(marker)
+	}
+	if maxKeys > 0 {
+		input.MaxKeys = aws.Int64(int64(maxKeys))
+	}
+	if delimiter != "" {
+		input.Delimiter = aws.String(delimiter)
+	}
+
+	result, err := a.Client.ListObjects(input)
+	if err != nil {
+		return nil, err
+	}
+
+	keys := make([]string, 0)
+	for _, v := range result.Contents {
+		keys = append(keys, *v.Key)
+	}
+
+	return keys, nil
+}

@@ -111,3 +111,18 @@ func (ossClient *OSS) Head(key string, attributes []string) (map[string]string, 
 
 	return res, nil
 }
+
+func (ossClient *OSS) ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error) {
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bucket.ListObjects(oss.Prefix(prefix), oss.Marker(marker), oss.MaxKeys(maxKeys), oss.Delimiter(delimiter))
+	keys := make([]string, 0)
+	for _, v := range res.Objects {
+		keys = append(keys, v.Key)
+	}
+
+	return keys, nil
+}
