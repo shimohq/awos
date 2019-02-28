@@ -1,4 +1,4 @@
-package aws
+package awos
 
 /**
 AccessKeyId=${accessKeyId} AccessKeySecret=${accessKeySecret} Endpoint=${endpoint} Bucket=${bucket} go test -v aws_test.go aws.go
@@ -15,17 +15,17 @@ import (
 )
 
 const (
-	guid         = "test123"
-	content      = "aaaaaa"
-	expectLength = 6
-	expectHead   = 1
+	AWSGuid         = "test123"
+	AWSContent      = "aaaaaa"
+	AWSExpectLength = 6
+	AWSExpectHead   = 1
 )
 
 var (
 	awsClient *AWS
 )
 
-func TestMain(m *testing.M) {
+func init() {
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region:           aws.String("cn-north-1"),
 		DisableSSL:       aws.Bool(true),
@@ -40,17 +40,14 @@ func TestMain(m *testing.M) {
 		BucketName: os.Getenv("Bucket"),
 		Client:     service,
 	}
-
-	m.Run()
-	os.Exit(0)
 }
 
 func TestAWS_Put(t *testing.T) {
 	meta := make(map[string]string)
-	meta["head"] = strconv.Itoa(expectHead)
-	meta["length"] = strconv.Itoa(expectLength)
+	meta["head"] = strconv.Itoa(AWSExpectHead)
+	meta["length"] = strconv.Itoa(AWSExpectLength)
 
-	err := awsClient.Put(guid, content, meta)
+	err := awsClient.Put(AWSGuid, AWSContent, meta)
 	if err != nil {
 		t.Log("aws put error", err)
 		t.Fail()
@@ -65,7 +62,7 @@ func TestAWS_Head(t *testing.T) {
 	var head int
 	var length int
 
-	res, err = awsClient.Head(guid, attributes)
+	res, err = awsClient.Head(AWSGuid, attributes)
 	if err != nil {
 		t.Log("aws head error", err)
 		t.Fail()
@@ -78,7 +75,7 @@ func TestAWS_Head(t *testing.T) {
 	}
 
 	attributes = append(attributes, "length")
-	res, err = awsClient.Head(guid, attributes)
+	res, err = awsClient.Head(AWSGuid, attributes)
 	if err != nil {
 		t.Log("aws head error", err)
 		t.Fail()
@@ -86,22 +83,22 @@ func TestAWS_Head(t *testing.T) {
 
 	head, err = strconv.Atoi(res["head"])
 	length, err = strconv.Atoi(res["length"])
-	if err != nil || head != expectHead || length != expectLength {
+	if err != nil || head != AWSExpectHead || length != AWSExpectLength {
 		t.Log("aws get head fail, res:", res, "err:", err)
 		t.Fail()
 	}
 }
 
 func TestAWS_Get(t *testing.T) {
-	res, err := awsClient.Get(guid)
-	if err != nil || res != content {
-		t.Log("aws get content fail, res:", res, "err:", err)
+	res, err := awsClient.Get(AWSGuid)
+	if err != nil || res != AWSContent {
+		t.Log("aws get AWSContent fail, res:", res, "err:", err)
 		t.Fail()
 	}
 }
 
-func TestOSS_ListObject(t *testing.T) {
-	res, err := awsClient.ListObject(guid, guid[0:4], "", 10, "")
+func TestAWS_ListObject(t *testing.T) {
+	res, err := awsClient.ListObject(AWSGuid, AWSGuid[0:4], "", 10, "")
 	if err != nil || len(res) == 0 {
 		t.Log("aws list objects fail, res:", res, "err:", err)
 		t.Fail()
@@ -109,7 +106,7 @@ func TestOSS_ListObject(t *testing.T) {
 }
 
 func TestAWS_Del(t *testing.T) {
-	err := awsClient.Del(guid)
+	err := awsClient.Del(AWSGuid)
 	if err != nil {
 		t.Log("aws del key fail, err:", err)
 		t.Fail()
@@ -117,7 +114,7 @@ func TestAWS_Del(t *testing.T) {
 }
 
 func TestAWS_GetNotExist(t *testing.T) {
-	res1, err := awsClient.Get(guid + "123")
+	res1, err := awsClient.Get(AWSGuid + "123")
 	if res1 != "" || err != nil {
 		t.Log("aws get not exist key fail, res:", res1, "err:", err)
 		t.Fail()
@@ -125,7 +122,7 @@ func TestAWS_GetNotExist(t *testing.T) {
 
 	attributes := make([]string, 0)
 	attributes = append(attributes, "head")
-	res2, err := awsClient.Head(guid+"123", attributes)
+	res2, err := awsClient.Head(AWSGuid+"123", attributes)
 	if res2 != nil || err != nil {
 		t.Log("aws head not exist key fail, res:", res2, "err:", err, err.Error())
 		t.Fail()

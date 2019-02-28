@@ -1,4 +1,4 @@
-package oss
+package awos
 
 /**
 AccessKeyId=${accessKeyId} AccessKeySecret=${accessKeySecret} bucket=${bucket} Endpoint=${endpoint} go test -v oss_test.go oss.go
@@ -22,7 +22,7 @@ var (
 	ossClient *OSS
 )
 
-func TestMain(m *testing.M) {
+func init() {
 	client, err := oss.New(os.Getenv("Endpoint"), os.Getenv("AccessKeyId"),
 		os.Getenv("AccessKeySecret"))
 	if err != nil {
@@ -37,9 +37,6 @@ func TestMain(m *testing.M) {
 	ossClient = &OSS{
 		Bucket: bucket,
 	}
-
-	m.Run()
-	os.Exit(0)
 }
 
 func TestOSS_Put(t *testing.T) {

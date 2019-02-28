@@ -7,8 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	awss3 "github.com/shimohq/awos/aws"
-	osstorage "github.com/shimohq/awos/oss"
 	"strings"
 )
 
@@ -17,6 +15,7 @@ type Client interface {
 	Put(key string, data string, meta map[string]string) error
 	Del(key string) error
 	Head(key string, meta []string) (map[string]string, error)
+	ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error)
 }
 
 type Options struct {
@@ -60,7 +59,7 @@ func New(options *Options) (Client, error) {
 			return nil, err
 		}
 
-		var ossClient *osstorage.OSS
+		var ossClient *OSS
 		if ossConfig.Shards != nil && len(ossConfig.Shards) > 0 {
 			buckets := make(map[string]*oss.Bucket)
 			for _, v := range ossConfig.Shards {
@@ -73,7 +72,7 @@ func New(options *Options) (Client, error) {
 				}
 			}
 
-			ossClient = &osstorage.OSS{
+			ossClient = &OSS{
 				Shards: buckets,
 			}
 		} else {
@@ -82,7 +81,7 @@ func New(options *Options) (Client, error) {
 				return nil, err
 			}
 
-			ossClient = &osstorage.OSS{
+			ossClient = &OSS{
 				Bucket: bucket,
 			}
 		}
@@ -112,7 +111,7 @@ func New(options *Options) (Client, error) {
 		}
 		service := s3.New(sess)
 
-		var awsClient *awss3.AWS
+		var awsClient *AWS
 		if awsConfig.Shards != nil && len(awsConfig.Shards) > 0 {
 			buckets := make(map[string]string)
 			for _, v := range awsConfig.Shards {
@@ -120,12 +119,12 @@ func New(options *Options) (Client, error) {
 					buckets[strings.ToLower(v[i:i+1])] = awsConfig.Bucket + "-" + v
 				}
 			}
-			awsClient = &awss3.AWS{
+			awsClient = &AWS{
 				ShardsBucket: buckets,
 				Client:       service,
 			}
 		} else {
-			awsClient = &awss3.AWS{
+			awsClient = &AWS{
 				BucketName: awsConfig.Bucket,
 				Client:     service,
 			}

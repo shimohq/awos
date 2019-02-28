@@ -1,4 +1,4 @@
-package oss
+package awos
 
 import (
 	"errors"
