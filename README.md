@@ -3,6 +3,8 @@ AWOS: Wrapper For OSS And AWS(MINIO)
 
 [![](https://img.shields.io/badge/version-1.0.1-brightgreen.svg)](https://github.com/shimohq/awos)
 
+awos for node:  https://github.com/shimohq/awos-js
+
 ## feat
 
 - enable shards bucket
