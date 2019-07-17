@@ -16,6 +16,7 @@ type Client interface {
 	Del(key string) error
 	Head(key string, meta []string) (map[string]string, error)
 	ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error)
+	SignURL(key string, expired int64) (string, error)
 }
 
 type Options struct {

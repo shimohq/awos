@@ -22,3 +22,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/ini.v1 v1.41.0 // indirect
 )
+
+replace golang.org/x/net => github.com/golang/net v0.0.0-20190213061140-3a22650c66bd

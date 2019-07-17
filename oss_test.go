@@ -94,6 +94,14 @@ func TestOSS_Get(t *testing.T) {
 	}
 }
 
+func TestOSS_SignURL(t *testing.T) {
+	res, err := ossClient.SignURL(guid, 60)
+	if err != nil {
+		t.Log("oss signUrl fail, res:", res, "err:", err)
+		t.Fail()
+	}
+}
+
 func TestOSS_ListObject(t *testing.T) {
 	res, err := ossClient.ListObject(guid, guid[0:4], "", 10, "")
 	if err != nil || len(res) == 0 {
