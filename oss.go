@@ -126,3 +126,12 @@ func (ossClient *OSS) ListObject(key string, prefix string, marker string, maxKe
 
 	return keys, nil
 }
+
+func (ossClient *OSS) SignURL(key string, expired int64) (string, error) {
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return "", err
+	}
+
+	return bucket.SignURL(key, oss.HTTPGet, expired)
+}

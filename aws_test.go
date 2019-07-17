@@ -97,6 +97,14 @@ func TestAWS_Get(t *testing.T) {
 	}
 }
 
+func TestAWS_SignURL(t *testing.T) {
+	res, err := awsClient.SignURL(AWSGuid, 60)
+	if err != nil {
+		t.Log("oss signUrl fail, res:", res, "err:", err)
+		t.Fail()
+	}
+}
+
 func TestAWS_ListObject(t *testing.T) {
 	res, err := awsClient.ListObject(AWSGuid, AWSGuid[0:4], "", 10, "")
 	if err != nil || len(res) == 0 {

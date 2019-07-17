@@ -175,3 +175,18 @@ func (a *AWS) ListObject(key string, prefix string, marker string, maxKeys int, 
 
 	return keys, nil
 }
+
+func (a *AWS) SignURL(key string, expired int64) (string, error) {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return "", err
+	}
+
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
+	}
+
+	req, _ := a.Client.GetObjectRequest(input)
+	return req.Presign(time.Duration(expired) * time.Second)
+}
