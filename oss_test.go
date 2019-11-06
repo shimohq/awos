@@ -72,6 +72,7 @@ func TestOSS_Head(t *testing.T) {
 	}
 
 	attributes = append(attributes, "length")
+	attributes = append(attributes, "Content-Type")
 	res, err = ossClient.Head(guid, attributes)
 	if err != nil {
 		t.Log("oss head error", err)
@@ -82,6 +83,11 @@ func TestOSS_Head(t *testing.T) {
 	length, err = strconv.Atoi(res["length"])
 	if err != nil || head != expectHead || length != expectLength {
 		t.Log("oss get head fail, res:", res, "err:", err)
+		t.Fail()
+	}
+
+	if res["Content-Type"] != "text/plain" {
+		t.Log("oss get head Content-Type wrong, res:", res, "err:", err)
 		t.Fail()
 	}
 }

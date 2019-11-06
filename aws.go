@@ -70,17 +70,18 @@ func (a *AWS) Get(key string) (string, error) {
 	return string(data), nil
 }
 
-func (a *AWS) Put(key string, data string, meta map[string]string) error {
+func (a *AWS) put(key string, data string, meta map[string]string, contentType string) error {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return err
 	}
 
 	input := &s3.PutObjectInput{
-		Body:     io.ReadSeeker(strings.NewReader(data)),
-		Bucket:   aws.String(bucketName),
-		Key:      aws.String(key),
-		Metadata: aws.StringMap(meta),
+		Body:        io.ReadSeeker(strings.NewReader(data)),
+		Bucket:      aws.String(bucketName),
+		Key:         aws.String(key),
+		Metadata:    aws.StringMap(meta),
+		ContentType: aws.String(contentType),
 	}
 
 	err = retry.Do(func() error {
@@ -89,6 +90,14 @@ func (a *AWS) Put(key string, data string, meta map[string]string) error {
 	}, retry.Attempts(3), retry.Delay(1*time.Second))
 
 	return err
+}
+
+func (a *AWS) Put(key string, data string, meta map[string]string) error {
+	return a.put(key, data, meta, "text/plain")
+}
+
+func (a *AWS) PutWithContentType(key string, data string, meta map[string]string, contentType string) error {
+	return a.put(key, data, meta, contentType)
 }
 
 func (a *AWS) Del(key string) error {

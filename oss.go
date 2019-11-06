@@ -58,7 +58,7 @@ func (ossClient *OSS) Get(key string) (string, error) {
 	return string(data), nil
 }
 
-func (ossClient *OSS) Put(key string, data string, meta map[string]string) error {
+func (ossClient *OSS) put(key string, data string, meta map[string]string, contentType string) error {
 	bucket, err := ossClient.getBucket(key)
 	if err != nil {
 		return err
@@ -70,10 +70,21 @@ func (ossClient *OSS) Put(key string, data string, meta map[string]string) error
 			options = append(options, oss.Meta(k, v))
 		}
 	}
+	if contentType != "" {
+		options = append(options, oss.ContentType(contentType))
+	}
 
 	return retry.Do(func() error {
 		return bucket.PutObject(key, strings.NewReader(data), options...)
 	}, retry.Attempts(3), retry.Delay(1*time.Second))
+}
+
+func (ossClient *OSS) Put(key string, data string, meta map[string]string) error {
+	return ossClient.put(key, data, meta, "text/plain")
+}
+
+func (ossClient *OSS) PutWithContentType(key string, data string, meta map[string]string, contentType string) error {
+	return ossClient.put(key, data, meta, contentType)
 }
 
 func (ossClient *OSS) Del(key string) error {
