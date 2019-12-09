@@ -1,11 +1,12 @@
 package awos
 
 /**
-AccessKeyId=${accessKeyId} AccessKeySecret=${accessKeySecret} bucket=${bucket} Endpoint=${endpoint} go test -v oss_test.go oss.go
+Put your environment configuration in ".env-oss"
 */
 
 import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/joho/godotenv"
 	"os"
 	"strconv"
 	"testing"
@@ -23,13 +24,18 @@ var (
 )
 
 func init() {
+	err := godotenv.Load(".env-oss")
+	if err != nil {
+		panic(err)
+	}
+
 	client, err := oss.New(os.Getenv("Endpoint"), os.Getenv("AccessKeyId"),
 		os.Getenv("AccessKeySecret"))
 	if err != nil {
 		panic(err)
 	}
 
-	bucket, err := client.Bucket(os.Getenv("bucket"))
+	bucket, err := client.Bucket(os.Getenv("Bucket"))
 	if err != nil {
 		panic(err)
 	}

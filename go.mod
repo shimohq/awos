@@ -8,6 +8,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-ini/ini v1.41.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
+	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/pty v1.1.3 // indirect
@@ -24,3 +25,5 @@ require (
 )
 
 replace golang.org/x/net => github.com/golang/net v0.0.0-20190213061140-3a22650c66bd
+
+go 1.13

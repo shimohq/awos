@@ -1,7 +1,7 @@
 package awos
 
 /**
-AccessKeyId=${accessKeyId} AccessKeySecret=${accessKeySecret} Endpoint=${endpoint} Bucket=${bucket} go test -v aws_test.go aws.go
+Put your environment configuration in ".env-aws"
 */
 
 import (
@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/joho/godotenv"
 	"os"
 	"strconv"
 	"testing"
@@ -26,6 +27,11 @@ var (
 )
 
 func init() {
+	err := godotenv.Load(".env-aws")
+	if err != nil {
+		panic(err)
+	}
+
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region:           aws.String("cn-north-1"),
 		DisableSSL:       aws.Bool(true),
