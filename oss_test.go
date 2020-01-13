@@ -7,6 +7,7 @@ Put your environment configuration in ".env-oss"
 import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/joho/godotenv"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"testing"
@@ -103,6 +104,16 @@ func TestOSS_Get(t *testing.T) {
 	if err != nil || res != content {
 		t.Log("oss get content fail, res:", res, "err:", err)
 		t.Fail()
+	}
+
+	res1, err := ossClient.GetAsReader(guid)
+	if err != nil {
+		t.Fatal("oss get content as reader fail, err:", err)
+	}
+
+	byteRes, _ := ioutil.ReadAll(res1)
+	if string(byteRes) != content {
+		t.Fatal("oss get as reader, readAll error")
 	}
 }
 

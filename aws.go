@@ -32,6 +32,22 @@ func (a *AWS) getBucket(key string) (string, error) {
 	return a.BucketName, nil
 }
 
+// don't forget to call the close() method of the io.ReadCloser
+func (a *AWS) GetAsReader(key string) (io.ReadCloser, error) {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
+	}
+
+	result, err := a.Client.GetObject(input)
+	return result.Body, err
+}
+
 func (a *AWS) Get(key string) (string, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {

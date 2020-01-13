@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/joho/godotenv"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"testing"
@@ -100,6 +101,16 @@ func TestAWS_Get(t *testing.T) {
 	if err != nil || res != AWSContent {
 		t.Log("aws get AWSContent fail, res:", res, "err:", err)
 		t.Fail()
+	}
+
+	res1, err := awsClient.GetAsReader(AWSGuid)
+	if err != nil {
+		t.Fatal("aws get content as reader fail, err:", err)
+	}
+
+	byteRes, _ := ioutil.ReadAll(res1)
+	if string(byteRes) != AWSContent {
+		t.Fatal("aws get as reader, readAll error")
 	}
 }
 

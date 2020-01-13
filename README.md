@@ -77,7 +77,8 @@ awsClient, _ := awos.New(&awos.Options{
 the available operation：
 
 ```golang
-Get(objectName string) (string, error)
+Get(key string) (string, error)
+GetAsReader(key string) (io.ReadCloser, error)
 Put(key string, data string, meta map[string]string) error
 PutWithContentType(key string, data string, meta map[string]string, contentType string) error
 Del(key string) error

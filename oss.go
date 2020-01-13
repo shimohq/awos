@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/avast/retry-go"
+	"io"
 	"io/ioutil"
 	"strings"
 	"time"
@@ -26,6 +27,16 @@ func (ossClient *OSS) getBucket(key string) (*oss.Bucket, error) {
 	}
 
 	return ossClient.Bucket, nil
+}
+
+// don't forget to call the close() method of the io.ReadCloser
+func (ossClient *OSS) GetAsReader(key string) (io.ReadCloser, error) {
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return bucket.GetObject(key)
 }
 
 func (ossClient *OSS) Get(key string) (string, error) {

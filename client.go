@@ -7,11 +7,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"io"
 	"strings"
 )
 
 type Client interface {
-	Get(objectName string) (string, error)
+	Get(key string) (string, error)
+	GetAsReader(key string) (io.ReadCloser, error)
 	Put(key string, data string, meta map[string]string) error
 	PutWithContentType(key string, data string, meta map[string]string, contentType string) error
 	Del(key string) error
