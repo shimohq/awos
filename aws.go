@@ -92,8 +92,9 @@ func (a *AWS) put(key string, data string, meta map[string]string, contentType s
 		return err
 	}
 
+	reader := strings.NewReader(data)
 	input := &s3.PutObjectInput{
-		Body:        io.ReadSeeker(strings.NewReader(data)),
+		Body:        io.ReadSeeker(reader),
 		Bucket:      aws.String(bucketName),
 		Key:         aws.String(key),
 		Metadata:    aws.StringMap(meta),
@@ -102,6 +103,11 @@ func (a *AWS) put(key string, data string, meta map[string]string, contentType s
 
 	err = retry.Do(func() error {
 		_, err := a.Client.PutObject(input)
+		if err != nil && reader != nil {
+			// Reset the body reader after the request since at this point it's already read
+			// Note that it's safe to ignore the error here since the 0,0 position is always valid
+			_, _ = reader.Seek(0, 0)
+		}
 		return err
 	}, retry.Attempts(3), retry.Delay(1*time.Second))
 
