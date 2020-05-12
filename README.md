@@ -1,4 +1,4 @@
-AWOS: Wrapper For OSS And AWS(MINIO)
+AWOS: Wrapper For Aliyun OSS And Amazon S3
 ====
 
 [![](https://img.shields.io/badge/version-1.1.0-brightgreen.svg)](https://github.com/shimohq/awos)
@@ -23,7 +23,7 @@ go get github.com/shimohq/awos
 
 ## how to use
 
-### for oss
+### for Aliyun OSS
 
 ```golang
 import "github.com/shimohq/awos"
@@ -39,7 +39,7 @@ ossClient, err := awos.New(&awos.Options{
 })
 ```
 
-### for aws(minio)
+### for Amazon S3
 
 ```golang
 import "github.com/shimohq/awos"
