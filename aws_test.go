@@ -5,6 +5,7 @@ Put your environment configuration in ".env-aws"
 */
 
 import (
+	"bytes"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -13,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -54,7 +56,13 @@ func TestAWS_Put(t *testing.T) {
 	meta["head"] = strconv.Itoa(AWSExpectHead)
 	meta["length"] = strconv.Itoa(AWSExpectLength)
 
-	err := awsClient.Put(AWSGuid, AWSContent, meta)
+	err := awsClient.Put(AWSGuid, strings.NewReader(AWSContent), meta)
+	if err != nil {
+		t.Log("aws put error", err)
+		t.Fail()
+	}
+
+	err = awsClient.Put(AWSGuid, bytes.NewReader([]byte(AWSContent)), meta)
 	if err != nil {
 		t.Log("aws put error", err)
 		t.Fail()

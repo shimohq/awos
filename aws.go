@@ -86,19 +86,23 @@ func (a *AWS) Get(key string) (string, error) {
 	return string(data), nil
 }
 
-func (a *AWS) put(key string, data string, meta map[string]string, contentType string) error {
+func (a *AWS) Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return err
 	}
 
-	reader := strings.NewReader(data)
+	putOptions := DefaultPutOptions
+	for _, opt := range options {
+		opt(putOptions)
+	}
+
 	input := &s3.PutObjectInput{
-		Body:        io.ReadSeeker(reader),
+		Body:        reader,
 		Bucket:      aws.String(bucketName),
 		Key:         aws.String(key),
 		Metadata:    aws.StringMap(meta),
-		ContentType: aws.String(contentType),
+		ContentType: aws.String(putOptions.contentType),
 	}
 
 	err = retry.Do(func() error {
@@ -112,14 +116,6 @@ func (a *AWS) put(key string, data string, meta map[string]string, contentType s
 	}, retry.Attempts(3), retry.Delay(1*time.Second))
 
 	return err
-}
-
-func (a *AWS) Put(key string, data string, meta map[string]string) error {
-	return a.put(key, data, meta, "text/plain")
-}
-
-func (a *AWS) PutWithContentType(key string, data string, meta map[string]string, contentType string) error {
-	return a.put(key, data, meta, contentType)
 }
 
 func (a *AWS) Del(key string) error {

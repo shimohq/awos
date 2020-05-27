@@ -69,33 +69,34 @@ func (ossClient *OSS) Get(key string) (string, error) {
 	return string(data), nil
 }
 
-func (ossClient *OSS) put(key string, data string, meta map[string]string, contentType string) error {
+func (ossClient *OSS) Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
 	bucket, err := ossClient.getBucket(key)
 	if err != nil {
 		return err
 	}
 
-	options := make([]oss.Option, 0)
+	putOptions := DefaultPutOptions
+	for _, opt := range options {
+		opt(putOptions)
+	}
+
+	ossOptions := make([]oss.Option, 0)
 	if meta != nil {
 		for k, v := range meta {
-			options = append(options, oss.Meta(k, v))
+			ossOptions = append(ossOptions, oss.Meta(k, v))
 		}
 	}
-	if contentType != "" {
-		options = append(options, oss.ContentType(contentType))
-	}
+	ossOptions = append(ossOptions, oss.ContentType(putOptions.contentType))
 
 	return retry.Do(func() error {
-		return bucket.PutObject(key, strings.NewReader(data), options...)
+		err := bucket.PutObject(key, reader, ossOptions...)
+		if err != nil && reader != nil {
+			// Reset the body reader after the request since at this point it's already read
+			// Note that it's safe to ignore the error here since the 0,0 position is always valid
+			_, _ = reader.Seek(0, 0)
+		}
+		return err
 	}, retry.Attempts(3), retry.Delay(1*time.Second))
-}
-
-func (ossClient *OSS) Put(key string, data string, meta map[string]string) error {
-	return ossClient.put(key, data, meta, "text/plain")
-}
-
-func (ossClient *OSS) PutWithContentType(key string, data string, meta map[string]string, contentType string) error {
-	return ossClient.put(key, data, meta, contentType)
 }
 
 func (ossClient *OSS) Del(key string) error {
