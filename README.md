@@ -59,28 +59,12 @@ awsClient, err := awos.New(&awos.Options{
 })
 ```
 
-### shards bucket（same usage for aws）
-
-```golang
-awsClient, _ := awos.New(&awos.Options{
-    Storage: awos.OSSStorage,
-    Oss: &awos.OSSOptions{
-        AccessKeyId: "your accessKeyId",
-        AccessKeySecret: "your accessKeySecret",
-        Bucket: "your bucket",
-        Shards: []string{"bucket-suffix1", "bucket-suffix2"},
-        Endpoint: "your endpoint",
-    },
-})
-```
-
 the available operation：
 
 ```golang
 Get(key string) (string, error)
 GetAsReader(key string) (io.ReadCloser, error)
-Put(key string, data string, meta map[string]string) error
-PutWithContentType(key string, data string, meta map[string]string, contentType string) error
+Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
 Del(key string) error
 Head(key string, meta []string) (map[string]string, error)
 ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error)
