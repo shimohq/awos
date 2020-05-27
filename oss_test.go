@@ -5,11 +5,13 @@ Put your environment configuration in ".env-oss"
 */
 
 import (
+	"bytes"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/joho/godotenv"
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -51,9 +53,15 @@ func TestOSS_Put(t *testing.T) {
 	meta["head"] = strconv.Itoa(expectHead)
 	meta["length"] = strconv.Itoa(expectLength)
 
-	err := ossClient.Put(guid, content, meta)
+	err := ossClient.Put(guid, strings.NewReader(content), meta)
 	if err != nil {
 		t.Log("oss put error", err)
+		t.Fail()
+	}
+
+	err = ossClient.Put(guid, bytes.NewReader([]byte(content)), meta)
+	if err != nil {
+		t.Log("oss put byte array error", err)
 		t.Fail()
 	}
 }
