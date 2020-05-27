@@ -1,4 +1,4 @@
-module github.com/shimohq/awos
+module github.com/shimohq/awos/v2
 
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible
