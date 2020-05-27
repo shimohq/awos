@@ -18,7 +18,7 @@ awos for node:  https://github.com/shimohq/awos-js
 Use go get to retrieve the SDK to add it to your GOPATH workspace, or project's Go module dependencies.
 
 ```
-go get github.com/shimohq/awos
+go get github.com/shimohq/awos/v2
 ```
 
 ## how to use
