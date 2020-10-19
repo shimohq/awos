@@ -133,6 +133,27 @@ func (a *AWS) Del(key string) error {
 	return err
 }
 
+func (a *AWS) DelMulti(keys []string) error {
+	delObjects := make([]*s3.ObjectIdentifier, len(keys))
+
+	for idx, key := range keys {
+		delObjects[idx] = &s3.ObjectIdentifier{
+			Key: aws.String(key),
+		}
+	}
+
+	input := &s3.DeleteObjectsInput{
+		Bucket: aws.String(a.BucketName),
+		Delete: &s3.Delete{
+			Objects: delObjects,
+			Quiet:   aws.Bool(false),
+		},
+	}
+
+	_, err := a.Client.DeleteObjects(input)
+	return err
+}
+
 func (a *AWS) Head(key string, meta []string) (map[string]string, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {

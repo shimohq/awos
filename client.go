@@ -16,6 +16,7 @@ type Client interface {
 	GetAsReader(key string) (io.ReadCloser, error)
 	Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
 	Del(key string) error
+	DelMulti(keys []string) error
 	Head(key string, meta []string) (map[string]string, error)
 	ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error)
 	SignURL(key string, expired int64) (string, error)

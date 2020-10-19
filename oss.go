@@ -108,6 +108,12 @@ func (ossClient *OSS) Del(key string) error {
 	return bucket.DeleteObject(key)
 }
 
+func (ossClient *OSS) DelMulti(keys []string) error {
+	_, err := ossClient.Bucket.DeleteObjects(keys)
+
+	return err
+}
+
 func (ossClient *OSS) Head(key string, attributes []string) (map[string]string, error) {
 	bucket, err := ossClient.getBucket(key)
 	if err != nil {

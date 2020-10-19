@@ -161,3 +161,24 @@ func TestAWS_GetNotExist(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestAWS_DelMulti(t *testing.T) {
+	keys := []string{"aaa", "bbb", "ccc"}
+	for _, key := range keys {
+		awsClient.Put(key, strings.NewReader("2333333"), nil)
+	}
+
+	err := awsClient.DelMulti(keys)
+	if err != nil {
+		t.Log("aws del multi keys fail, err:", err)
+		t.Fail()
+	}
+
+	for _, key := range keys {
+		res, err := awsClient.Get(key)
+		if res != "" || err != nil {
+			t.Logf("key:%s should not be exist", key)
+			t.Fail()
+		}
+	}
+}
