@@ -1,15 +1,18 @@
 package awos
 
 import (
+	"bytes"
 	"errors"
-	"github.com/avast/retry-go"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"io/ioutil"
 	"strings"
 	"time"
+
+	"github.com/avast/retry-go"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/golang/snappy"
 )
 
 type AWS struct {
@@ -49,17 +52,14 @@ func (a *AWS) GetAsReader(key string) (io.ReadCloser, error) {
 }
 
 func (a *AWS) Get(key string) (string, error) {
-	bucketName, err := a.getBucket(key)
+	result, err := a.get(key)
 	if err != nil {
 		return "", err
 	}
 
-	input := &s3.GetObjectInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(key),
+	if result == nil {
+		return "", nil
 	}
-
-	result, err := a.Client.GetObject(input)
 
 	body := result.Body
 
@@ -69,13 +69,49 @@ func (a *AWS) Get(key string) (string, error) {
 		}
 	}()
 
+	data, err := ioutil.ReadAll(body)
+
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == s3.ErrCodeNoSuchKey {
-				return "", nil
-			}
-		}
 		return "", err
+	}
+
+	return string(data), nil
+}
+
+func (a *AWS) GetAndDecompress(key string) (string, error) {
+	result, err := a.get(key)
+
+	if err != nil {
+		return "", err
+	}
+
+	if result == nil {
+		return "", nil
+	}
+
+	body := result.Body
+
+	defer func() {
+		if body != nil {
+			body.Close()
+		}
+	}()
+
+	compressor := result.Metadata["Compressor"]
+
+	if compressor != nil {
+		if *compressor != "snappy" {
+			return "", errors.New("GetAndDecompress only supports snappy for now, got " + *compressor)
+		}
+
+		reader := snappy.NewReader(result.Body)
+		data, err := ioutil.ReadAll(reader)
+
+		if err != nil {
+			return "", err
+		}
+
+		return string(data), err
 	}
 
 	data, err := ioutil.ReadAll(body)
@@ -84,6 +120,54 @@ func (a *AWS) Get(key string) (string, error) {
 	}
 
 	return string(data), nil
+}
+
+func (a *AWS) GetAndDecompressAsReader(key string) (io.ReadCloser, error) {
+	result, err := a.get(key)
+
+	if err != nil {
+		return nil, err
+	}
+
+	compressor := result.Metadata["Compressor"]
+
+	if compressor != nil {
+		if *compressor != "snappy" {
+			return nil, errors.New("GetAndDecompress only supports snappy for now, got " + *compressor)
+		}
+
+		body := result.Body
+
+		reader := snappy.NewReader(body)
+		return ioutil.NopCloser(reader), nil
+	}
+
+	return result.Body, nil
+}
+
+func (a *AWS) get(key string) (*s3.GetObjectOutput, error) {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
+	}
+
+	result, err := a.Client.GetObject(input)
+
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() == s3.ErrCodeNoSuchKey {
+				return nil, nil
+			}
+		}
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (a *AWS) Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
@@ -116,6 +200,22 @@ func (a *AWS) Put(key string, reader io.ReadSeeker, meta map[string]string, opti
 	}, retry.Attempts(3), retry.Delay(1*time.Second))
 
 	return err
+}
+
+func (a *AWS) CompressAndPut(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+	writer := snappy.NewBufferedWriter(&buf)
+	writer.Write(data)
+	writer.Flush()
+	writer.Close()
+	meta["Compressor"] = "snappy"
+
+	return a.Put(key, bytes.NewReader(buf.Bytes()), meta, options...)
 }
 
 func (a *AWS) Del(key string) error {
