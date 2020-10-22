@@ -1,17 +1,16 @@
-AWOS: Wrapper For Aliyun OSS And Amazon S3
-====
+# AWOS: Wrapper For Aliyun OSS And Amazon S3
 
 [![](https://img.shields.io/badge/version-2.0.0-brightgreen.svg)](https://github.com/shimohq/awos)
 
-awos for node:  https://github.com/shimohq/awos-js
+awos for node: https://github.com/shimohq/awos-js
 
 ## feat
 
 - enable shards bucket
 - add retry strategy
 - avoid 404 status code:
-    - `Get(objectName string) (string, error)` will return `"", nil` when object not exist
-    - `Head(key string, meta []string) (map[string]string, error)` will return `nil, nil` when object not exist
+  - `Get(objectName string) (string, error)` will return `"", nil` when object not exist
+  - `Head(key string, meta []string) (map[string]string, error)` will return `nil, nil` when object not exist
 
 ## installing
 
@@ -70,9 +69,7 @@ DelMulti(keys []string) error
 Head(key string, meta []string) (map[string]string, error)
 ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error)
 SignURL(key string, expired int64) (string, error)
+GetAndDecompress(key string) (string, error)
+GetAndDecompressAsReader(key string) (io.ReadCloser, error)
+CompressAndPut(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
 ```
-
-
-
-
-
