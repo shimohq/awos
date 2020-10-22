@@ -139,7 +139,8 @@ func (a *AWS) GetAndDecompressAsReader(key string) (io.ReadCloser, error) {
 		body := result.Body
 
 		reader := snappy.NewReader(body)
-		return ioutil.NopCloser(reader), nil
+
+		return CombinedReadCloser{ReadCloser: body, Reader: reader}, nil
 	}
 
 	return result.Body, nil

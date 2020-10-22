@@ -130,7 +130,7 @@ func (ossClient *OSS) GetAndDecompressAsReader(key string) (io.ReadCloser, error
 
 		reader := snappy.NewReader(body)
 
-		return ioutil.NopCloser(reader), nil
+		return CombinedReadCloser{ReadCloser: body, Reader: reader}, nil
 	}
 
 	return body, nil
