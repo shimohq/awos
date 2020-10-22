@@ -6,16 +6,17 @@ Put your environment configuration in ".env-aws"
 
 import (
 	"bytes"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/joho/godotenv"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -23,6 +24,9 @@ const (
 	AWSContent      = "aaaaaa"
 	AWSExpectLength = 6
 	AWSExpectHead   = 1
+
+	AWSCompressGUID    = "test123-snappy"
+	AWSCompressContent = "snappy-contentsnappy-contentsnappy-contentsnappy-content"
 )
 
 var (
@@ -30,7 +34,7 @@ var (
 )
 
 func init() {
-	err := godotenv.Load(".env-aws")
+	err := godotenv.Overload(".env-aws")
 	if err != nil {
 		panic(err)
 	}
@@ -63,6 +67,24 @@ func TestAWS_Put(t *testing.T) {
 	}
 
 	err = awsClient.Put(AWSGuid, bytes.NewReader([]byte(AWSContent)), meta)
+	if err != nil {
+		t.Log("aws put error", err)
+		t.Fail()
+	}
+}
+
+func TestAWS_CompressAndPut(t *testing.T) {
+	meta := make(map[string]string)
+	meta["head"] = strconv.Itoa(AWSExpectHead)
+	meta["length"] = strconv.Itoa(AWSExpectLength)
+
+	err := awsClient.CompressAndPut(AWSCompressGUID, strings.NewReader(AWSCompressContent), meta)
+	if err != nil {
+		t.Log("aws put error", err)
+		t.Fail()
+	}
+
+	err = awsClient.CompressAndPut(AWSCompressGUID, bytes.NewReader([]byte(AWSCompressContent)), meta)
 	if err != nil {
 		t.Log("aws put error", err)
 		t.Fail()
@@ -112,6 +134,44 @@ func TestAWS_Get(t *testing.T) {
 	}
 
 	res1, err := awsClient.GetAsReader(AWSGuid)
+	if err != nil {
+		t.Fatal("aws get content as reader fail, err:", err)
+	}
+
+	byteRes, _ := ioutil.ReadAll(res1)
+	if string(byteRes) != AWSContent {
+		t.Fatal("aws get as reader, readAll error")
+	}
+}
+
+// compressed content
+func TestAWS_GetAndDecompress(t *testing.T) {
+	res, err := awsClient.GetAndDecompress(AWSCompressGUID)
+	if err != nil || res != AWSCompressContent {
+		t.Log("aws get AWS conpressed Content fail, res:", res, "err:", err)
+		t.Fail()
+	}
+
+	res1, err := awsClient.GetAndDecompressAsReader(AWSCompressGUID)
+	if err != nil {
+		t.Fatal("aws get compressed content as reader fail, err:", err)
+	}
+
+	byteRes, error := ioutil.ReadAll(res1)
+	if string(byteRes) != AWSCompressContent || error != nil {
+		t.Fatal("aws get as reader, readAll error0", string(byteRes), error)
+	}
+}
+
+// non-compressed content
+func TestAWS_GetAndDecompress2(t *testing.T) {
+	res, err := awsClient.GetAndDecompress(AWSGuid)
+	if err != nil || res != AWSContent {
+		t.Log("aws get AWSContent fail, res:", res, "err:", err)
+		t.Fail()
+	}
+
+	res1, err := awsClient.GetAndDecompressAsReader(AWSGuid)
 	if err != nil {
 		t.Fatal("aws get content as reader fail, err:", err)
 	}

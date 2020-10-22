@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.29.8
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/golang/snappy v0.0.2
 	github.com/google/uuid v1.1.1
 	github.com/joho/godotenv v1.3.0
 	github.com/kr/pretty v0.1.0 // indirect

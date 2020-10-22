@@ -1,13 +1,16 @@
 package awos
 
 import (
+	"bytes"
 	"errors"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/avast/retry-go"
 	"io"
 	"io/ioutil"
 	"strings"
 	"time"
+
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/avast/retry-go"
+	"github.com/golang/snappy"
 )
 
 type OSS struct {
@@ -40,25 +43,62 @@ func (ossClient *OSS) GetAsReader(key string) (io.ReadCloser, error) {
 }
 
 func (ossClient *OSS) Get(key string) (string, error) {
-	bucket, err := ossClient.getBucket(key)
+	result, err := ossClient.get(key)
+
 	if err != nil {
 		return "", err
 	}
 
-	body, err := bucket.GetObject(key)
+	if result == nil {
+		return "", nil
+	}
+
+	body := result.Response
 	defer func() {
 		if body != nil {
 			body.Close()
 		}
 	}()
 
+	data, err := ioutil.ReadAll(body)
 	if err != nil {
-		if oerr, ok := err.(oss.ServiceError); ok {
-			if oerr.StatusCode == 404 {
-				return "", nil
-			}
-		}
 		return "", err
+	}
+
+	return string(data), nil
+}
+
+func (ossClient *OSS) GetAndDecompress(key string) (string, error) {
+	result, err := ossClient.get(key)
+
+	if err != nil {
+		return "", err
+	}
+
+	if result == nil {
+		return "", nil
+	}
+
+	body := result.Response
+	defer func() {
+		if body != nil {
+			body.Close()
+		}
+	}()
+
+	compressor := body.Headers.Get("X-Oss-Meta-Compressor")
+	if compressor != "" {
+		if compressor != "snappy" {
+			return "", errors.New("GetAndDecompress only supports snappy for now, got " + compressor)
+		}
+
+		reader := snappy.NewReader(body)
+		data, err := ioutil.ReadAll(reader)
+
+		if err != nil {
+			return "", err
+		}
+		return string(data), err
 	}
 
 	data, err := ioutil.ReadAll(body)
@@ -67,6 +107,53 @@ func (ossClient *OSS) Get(key string) (string, error) {
 	}
 
 	return string(data), nil
+}
+
+func (ossClient *OSS) GetAndDecompressAsReader(key string) (io.ReadCloser, error) {
+	result, err := ossClient.get(key)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return nil, nil
+	}
+
+	body := result.Response
+
+	compressor := body.Headers.Get("X-Oss-Meta-Compressor")
+	if compressor != "" {
+		if compressor != "snappy" {
+			return nil, errors.New("GetAndDecompress only supports snappy for now, got " + compressor)
+		}
+
+		reader := snappy.NewReader(body)
+
+		return CombinedReadCloser{ReadCloser: body, Reader: reader}, nil
+	}
+
+	return body, nil
+}
+
+func (ossClient *OSS) get(key string) (*oss.GetObjectResult, error) {
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := bucket.DoGetObject(&oss.GetObjectRequest{ObjectKey: key}, []oss.Option{})
+
+	if err != nil {
+		if oerr, ok := err.(oss.ServiceError); ok {
+			if oerr.StatusCode == 404 {
+				return nil, nil
+			}
+		}
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (ossClient *OSS) Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
@@ -97,6 +184,22 @@ func (ossClient *OSS) Put(key string, reader io.ReadSeeker, meta map[string]stri
 		}
 		return err
 	}, retry.Attempts(3), retry.Delay(1*time.Second))
+}
+
+func (ossClient *OSS) CompressAndPut(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+	writer := snappy.NewBufferedWriter(&buf)
+	writer.Write(data)
+	writer.Flush()
+	writer.Close()
+	meta["Compressor"] = "snappy"
+
+	return ossClient.Put(key, bytes.NewReader(buf.Bytes()), meta, options...)
 }
 
 func (ossClient *OSS) Del(key string) error {

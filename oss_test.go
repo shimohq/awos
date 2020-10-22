@@ -6,13 +6,14 @@ Put your environment configuration in ".env-oss"
 
 import (
 	"bytes"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/joho/godotenv"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -20,6 +21,9 @@ const (
 	content      = "aaaaaa"
 	expectLength = 6
 	expectHead   = 1
+
+	compressGUID    = "test123-snappy"
+	compressContent = "snappy-contentsnappy-contentsnappy-contentsnappy-content"
 )
 
 var (
@@ -27,7 +31,7 @@ var (
 )
 
 func init() {
-	err := godotenv.Load(".env-oss")
+	err := godotenv.Overload(".env-oss")
 	if err != nil {
 		panic(err)
 	}
@@ -62,6 +66,24 @@ func TestOSS_Put(t *testing.T) {
 	err = ossClient.Put(guid, bytes.NewReader([]byte(content)), meta)
 	if err != nil {
 		t.Log("oss put byte array error", err)
+		t.Fail()
+	}
+}
+
+func TestOSS_CompressAndPut(t *testing.T) {
+	meta := make(map[string]string)
+	meta["head"] = strconv.Itoa(expectHead)
+	meta["length"] = strconv.Itoa(expectLength)
+
+	err := ossClient.CompressAndPut(compressGUID, strings.NewReader(compressContent), meta)
+	if err != nil {
+		t.Log("oss put error", err)
+		t.Fail()
+	}
+
+	err = ossClient.CompressAndPut(compressGUID, bytes.NewReader([]byte(compressContent)), meta)
+	if err != nil {
+		t.Log("oss put error", err)
 		t.Fail()
 	}
 }
@@ -115,6 +137,42 @@ func TestOSS_Get(t *testing.T) {
 	}
 
 	res1, err := ossClient.GetAsReader(guid)
+	if err != nil {
+		t.Fatal("oss get content as reader fail, err:", err)
+	}
+
+	byteRes, _ := ioutil.ReadAll(res1)
+	if string(byteRes) != content {
+		t.Fatal("oss get as reader, readAll error")
+	}
+}
+
+func TestOSS_GetAndDecompress(t *testing.T) {
+	res, err := ossClient.GetAndDecompress(compressGUID)
+	if err != nil || res != compressContent {
+		t.Log("aws get oss content fail, res:", res, "err:", err)
+		t.Fail()
+	}
+
+	res1, err := ossClient.GetAndDecompressAsReader(compressGUID)
+	if err != nil {
+		t.Fatal("oss get content as reader fail, err:", err)
+	}
+
+	byteRes, _ := ioutil.ReadAll(res1)
+	if string(byteRes) != compressContent {
+		t.Fatal("oss get as reader, readAll error")
+	}
+}
+
+func TestOSS_GetAndDecompress2(t *testing.T) {
+	res, err := ossClient.GetAndDecompress(guid)
+	if err != nil || res != content {
+		t.Log("aws get oss content fail, res:", res, "err:", err)
+		t.Fail()
+	}
+
+	res1, err := ossClient.GetAndDecompressAsReader(guid)
 	if err != nil {
 		t.Fatal("oss get content as reader fail, err:", err)
 	}
