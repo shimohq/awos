@@ -191,6 +191,9 @@ func (ossClient *OSS) CompressAndPut(key string, reader io.ReadSeeker, meta map[
 	if err != nil {
 		return err
 	}
+	if meta == nil {
+		meta = make(map[string]string)
+	}
 
 	var buf bytes.Buffer
 	writer := snappy.NewBufferedWriter(&buf)
