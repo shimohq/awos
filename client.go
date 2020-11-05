@@ -1,7 +1,7 @@
 package awos
 
 import (
-	"errors"
+	"fmt"
 	"io"
 	"strings"
 
@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
+// Client interface
 type Client interface {
 	Get(key string) (string, error)
 	GetAsReader(key string) (io.ReadCloser, error)
@@ -26,52 +27,46 @@ type Client interface {
 	CompressAndPut(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
 }
 
+// Options for New method
 type Options struct {
-	Storage string
-	Oss     *OSSOptions
-	Aws     *AWSOptions
-}
-
-type OSSOptions struct {
-	AccessKeyId     string
+	// Required, value is one of oss/aws/s3/minio, case insensetive
+	StorageType string
+	// Required
+	AccessKeyID string
+	// Required
 	AccessKeySecret string
-	Endpoint        string
-	Bucket          string
-	Shards          []string
-}
-
-type AWSOptions struct {
-	AccessKeyId     string
-	AccessKeySecret string
-	Endpoint        string
-	SSL             bool
-	Region          string
-	Bucket          string
-	Shards          []string
-	// set S3ForcePathStyle = true when use minio
+	// Required
+	Endpoint string
+	// Required
+	Bucket string
+	// Optional, choose which bucket to use based on the last character of the key,
+	// if bucket is 'content', shards is ['abc', 'edf'],
+	// then the last character of the key with a/b/c will automatically use the content-abc bucket, and vice versa
+	Shards []string
+	// Only for s3-like
+	Region string
+	// Only for s3-like, whether to force path style URLs for S3 objects.
 	S3ForcePathStyle bool
+	// Only for s3-like
+	SSL bool
 }
 
-const (
-	OSSStorage = "oss"
-	S3Storage  = "aws"
-)
-
+// New awos Client instance
 func New(options *Options) (Client, error) {
 	var miossClient Client
+	storageType := strings.ToLower(options.StorageType)
 
-	if options.Storage == OSSStorage {
-		ossConfig := options.Oss
-		client, err := oss.New(ossConfig.Endpoint, ossConfig.AccessKeyId, ossConfig.AccessKeySecret)
+	if storageType == "oss" {
+		client, err := oss.New(options.Endpoint, options.AccessKeyID, options.AccessKeySecret)
 		if err != nil {
 			return nil, err
 		}
 
 		var ossClient *OSS
-		if ossConfig.Shards != nil && len(ossConfig.Shards) > 0 {
+		if options.Shards != nil && len(options.Shards) > 0 {
 			buckets := make(map[string]*oss.Bucket)
-			for _, v := range ossConfig.Shards {
-				bucket, err := client.Bucket(ossConfig.Bucket + "-" + v)
+			for _, v := range options.Shards {
+				bucket, err := client.Bucket(options.Bucket + "-" + v)
 				if err != nil {
 					return nil, err
 				}
@@ -84,7 +79,7 @@ func New(options *Options) (Client, error) {
 				Shards: buckets,
 			}
 		} else {
-			bucket, err := client.Bucket(ossConfig.Bucket)
+			bucket, err := client.Bucket(options.Bucket)
 			if err != nil {
 				return nil, err
 			}
@@ -97,34 +92,33 @@ func New(options *Options) (Client, error) {
 		miossClient = ossClient
 
 		return miossClient, nil
-	} else if options.Storage == S3Storage {
-		awsConfig := options.Aws
+	} else if storageType == "aws" || storageType == "s3" || storageType == "minio" {
 		var sess *session.Session
 
 		// use minio
-		if awsConfig.S3ForcePathStyle == true {
+		if options.S3ForcePathStyle == true {
 			sess = session.Must(session.NewSession(&aws.Config{
-				Region:           aws.String(awsConfig.Region),
-				DisableSSL:       aws.Bool(awsConfig.SSL == false),
-				Credentials:      credentials.NewStaticCredentials(awsConfig.AccessKeyId, awsConfig.AccessKeySecret, ""),
-				Endpoint:         aws.String(awsConfig.Endpoint),
+				Region:           aws.String(options.Region),
+				DisableSSL:       aws.Bool(options.SSL == false),
+				Credentials:      credentials.NewStaticCredentials(options.AccessKeyID, options.AccessKeySecret, ""),
+				Endpoint:         aws.String(options.Endpoint),
 				S3ForcePathStyle: aws.Bool(true),
 			}))
 		} else {
 			sess = session.Must(session.NewSession(&aws.Config{
-				Region:      aws.String(awsConfig.Region),
-				DisableSSL:  aws.Bool(awsConfig.SSL == false),
-				Credentials: credentials.NewStaticCredentials(awsConfig.AccessKeyId, awsConfig.AccessKeySecret, ""),
+				Region:      aws.String(options.Region),
+				DisableSSL:  aws.Bool(options.SSL == false),
+				Credentials: credentials.NewStaticCredentials(options.AccessKeyID, options.AccessKeySecret, ""),
 			}))
 		}
 		service := s3.New(sess)
 
 		var awsClient *AWS
-		if awsConfig.Shards != nil && len(awsConfig.Shards) > 0 {
+		if options.Shards != nil && len(options.Shards) > 0 {
 			buckets := make(map[string]string)
-			for _, v := range awsConfig.Shards {
+			for _, v := range options.Shards {
 				for i := 0; i < len(v); i++ {
-					buckets[strings.ToLower(v[i:i+1])] = awsConfig.Bucket + "-" + v
+					buckets[strings.ToLower(v[i:i+1])] = options.Bucket + "-" + v
 				}
 			}
 			awsClient = &AWS{
@@ -133,7 +127,7 @@ func New(options *Options) (Client, error) {
 			}
 		} else {
 			awsClient = &AWS{
-				BucketName: awsConfig.Bucket,
+				BucketName: options.Bucket,
 				Client:     service,
 			}
 		}
@@ -142,6 +136,6 @@ func New(options *Options) (Client, error) {
 
 		return miossClient, nil
 	} else {
-		return nil, errors.New("options.storage should be oss or aws")
+		return nil, fmt.Errorf("Unknown StorageType:\"%s\", only supports oss,s3,minio,aws", options.StorageType)
 	}
 }
