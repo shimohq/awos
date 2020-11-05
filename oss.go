@@ -92,13 +92,26 @@ func (ossClient *OSS) GetAndDecompress(key string) (string, error) {
 			return "", errors.New("GetAndDecompress only supports snappy for now, got " + compressor)
 		}
 
-		reader := snappy.NewReader(body)
-		data, err := ioutil.ReadAll(reader)
-
+		rawBytes, err := ioutil.ReadAll(body)
 		if err != nil {
 			return "", err
 		}
-		return string(data), err
+
+		decodedBytes, err := snappy.Decode(nil, rawBytes)
+		if err != nil {
+			if errors.Is(err, snappy.ErrCorrupt) {
+				reader := snappy.NewReader(bytes.NewReader(rawBytes))
+				data, err := ioutil.ReadAll(reader)
+				if err != nil {
+					return "", err
+				}
+
+				return string(data), nil
+			}
+			return "", err
+		}
+
+		return string(decodedBytes), err
 	}
 
 	data, err := ioutil.ReadAll(body)
@@ -110,30 +123,11 @@ func (ossClient *OSS) GetAndDecompress(key string) (string, error) {
 }
 
 func (ossClient *OSS) GetAndDecompressAsReader(key string) (io.ReadCloser, error) {
-	result, err := ossClient.get(key)
-
+	ret, err := ossClient.GetAndDecompress(key)
 	if err != nil {
 		return nil, err
 	}
-
-	if result == nil {
-		return nil, nil
-	}
-
-	body := result.Response
-
-	compressor := body.Headers.Get("X-Oss-Meta-Compressor")
-	if compressor != "" {
-		if compressor != "snappy" {
-			return nil, errors.New("GetAndDecompress only supports snappy for now, got " + compressor)
-		}
-
-		reader := snappy.NewReader(body)
-
-		return CombinedReadCloser{ReadCloser: body, Reader: reader}, nil
-	}
-
-	return body, nil
+	return ioutil.NopCloser(strings.NewReader(ret)), nil
 }
 
 func (ossClient *OSS) get(key string) (*oss.GetObjectResult, error) {
@@ -195,14 +189,11 @@ func (ossClient *OSS) CompressAndPut(key string, reader io.ReadSeeker, meta map[
 		meta = make(map[string]string)
 	}
 
-	var buf bytes.Buffer
-	writer := snappy.NewBufferedWriter(&buf)
-	writer.Write(data)
-	writer.Flush()
-	writer.Close()
+	encodedBytes := snappy.Encode(nil, data)
+
 	meta["Compressor"] = "snappy"
 
-	return ossClient.Put(key, bytes.NewReader(buf.Bytes()), meta, options...)
+	return ossClient.Put(key, bytes.NewReader(encodedBytes), meta, options...)
 }
 
 func (ossClient *OSS) Del(key string) error {
