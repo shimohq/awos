@@ -189,14 +189,11 @@ func (ossClient *OSS) CompressAndPut(key string, reader io.ReadSeeker, meta map[
 		meta = make(map[string]string)
 	}
 
-	var buf bytes.Buffer
-	writer := snappy.NewBufferedWriter(&buf)
-	writer.Write(data)
-	writer.Flush()
-	writer.Close()
+	encodedBytes := snappy.Encode(nil, data)
+
 	meta["Compressor"] = "snappy"
 
-	return ossClient.Put(key, bytes.NewReader(buf.Bytes()), meta, options...)
+	return ossClient.Put(key, bytes.NewReader(encodedBytes), meta, options...)
 }
 
 func (ossClient *OSS) Del(key string) error {

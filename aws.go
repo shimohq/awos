@@ -209,14 +209,11 @@ func (a *AWS) CompressAndPut(key string, reader io.ReadSeeker, meta map[string]s
 		meta = make(map[string]string)
 	}
 
-	var buf bytes.Buffer
-	writer := snappy.NewBufferedWriter(&buf)
-	writer.Write(data)
-	writer.Flush()
-	writer.Close()
+	encodedBytes := snappy.Encode(nil, data)
+
 	meta["Compressor"] = "snappy"
 
-	return a.Put(key, bytes.NewReader(buf.Bytes()), meta, options...)
+	return a.Put(key, bytes.NewReader(encodedBytes), meta, options...)
 }
 
 func (a *AWS) Del(key string) error {
