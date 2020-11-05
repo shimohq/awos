@@ -4,7 +4,7 @@
 
 awos for node: https://github.com/shimohq/awos-js
 
-## feat
+## Features
 
 - enable shards bucket
 - add retry strategy
@@ -12,53 +12,44 @@ awos for node: https://github.com/shimohq/awos-js
   - `Get(objectName string) (string, error)` will return `"", nil` when object not exist
   - `Head(key string, meta []string) (map[string]string, error)` will return `nil, nil` when object not exist
 
-## installing
+## Installing
 
 Use go get to retrieve the SDK to add it to your GOPATH workspace, or project's Go module dependencies.
 
-```
-go get github.com/shimohq/awos/v2
+```bash
+go get github.com/shimohq/awos/v3
 ```
 
-## how to use
-
-### for Aliyun OSS
+## How to use
 
 ```golang
-import "github.com/shimohq/awos"
-
-ossClient, err := awos.New(&awos.Options{
-    Storage: awos.OSSStorage,
-    Oss: &awos.OSSOptions{
-        AccessKeyId: "your accessKeyId",
-        AccessKeySecret: "your accessKeySecret",
-        Endpoint: "your endpoint",
-        Bucket: "your bucket",
-    },
-})
-```
-
-### for Amazon S3
-
-```golang
-import "github.com/shimohq/awos"
+import "github.com/shimohq/awos/v3"
 
 awsClient, err := awos.New(&awos.Options{
-    Storage: awos.S3Storage,
-    Aws: &awos.AWSOptions{
-        AccessKeyId: "your accessKeyId",
-        AccessKeySecret: "your accessKeySecret",
-        Bucket: "your bucket",
-        // when use minio, S3ForcePathStyle must be set true
-        // when use aws, endpoint is unnecessary and region must be set
-        Region: "cn-north-1",
-        Endpoint: "your endpoint",
-        S3ForcePathStyle: true,
-    },
+    // Required, value is one of oss/s3, case insensetive
+    StorageType: "string"
+    // Required
+    AccessKeyID: "string"
+    // Required
+    AccessKeySecret: "string"
+    // Required
+    Endpoint: "string"
+    // Required
+    Bucket: "string"
+    // Optional, choose which bucket to use based on the last character of the key,
+    // if bucket is 'content', shards is ['abc', 'edf'],
+    // then the last character of the key with a/b/c will automatically use the content-abc bucket, and vice versa
+    Shards: [2]string{"abc","def"}
+    // Only for s3-like
+    Region: "string"
+    // Only for s3-like, whether to force path style URLs for S3 objects.
+    S3ForcePathStyle: false
+    // Only for s3-like
+    SSL: false
 })
 ```
 
-the available operation：
+Available operations：
 
 ```golang
 Get(key string) (string, error)
