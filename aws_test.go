@@ -12,10 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/joho/godotenv"
 )
 
@@ -30,7 +26,7 @@ const (
 )
 
 var (
-	awsClient *AWS
+	awsClient Client
 )
 
 func init() {
@@ -39,20 +35,22 @@ func init() {
 		panic(err)
 	}
 
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region:           aws.String("cn-north-1"),
-		DisableSSL:       aws.Bool(true),
-		Credentials:      credentials.NewStaticCredentials(os.Getenv("AccessKeyId"), os.Getenv("AccessKeySecret"), ""),
-		Endpoint:         aws.String(os.Getenv("Endpoint")),
-		S3ForcePathStyle: aws.Bool(true),
-	}))
+	client, err := New(&Options{
+		StorageType:      os.Getenv("StorageType"),
+		AccessKeyID:      os.Getenv("AccessKeyID"),
+		AccessKeySecret:  os.Getenv("AccessKeySecret"),
+		Endpoint:         os.Getenv("Endpoint"),
+		Bucket:           os.Getenv("Bucket"),
+		Region:           os.Getenv("Region"),
+		S3ForcePathStyle: os.Getenv("S3ForcePathStyle") == "true",
+		SSL:              os.Getenv("SSL") == "true",
+	})
 
-	service := s3.New(sess)
-
-	awsClient = &AWS{
-		BucketName: os.Getenv("Bucket"),
-		Client:     service,
+	if err != nil {
+		panic(err)
 	}
+
+	awsClient = client
 }
 
 func TestAWS_Put(t *testing.T) {

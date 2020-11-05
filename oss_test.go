@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/joho/godotenv"
 )
 
@@ -27,7 +26,7 @@ const (
 )
 
 var (
-	ossClient *OSS
+	ossClient Client
 )
 
 func init() {
@@ -36,20 +35,22 @@ func init() {
 		panic(err)
 	}
 
-	client, err := oss.New(os.Getenv("Endpoint"), os.Getenv("AccessKeyId"),
-		os.Getenv("AccessKeySecret"))
+	client, err := New(&Options{
+		StorageType:      os.Getenv("StorageType"),
+		AccessKeyID:      os.Getenv("AccessKeyID"),
+		AccessKeySecret:  os.Getenv("AccessKeySecret"),
+		Endpoint:         os.Getenv("Endpoint"),
+		Bucket:           os.Getenv("Bucket"),
+		Region:           os.Getenv("Region"),
+		S3ForcePathStyle: os.Getenv("S3ForcePathStyle") == "true",
+		SSL:              os.Getenv("SSL") == "true",
+	})
+
 	if err != nil {
 		panic(err)
 	}
 
-	bucket, err := client.Bucket(os.Getenv("Bucket"))
-	if err != nil {
-		panic(err)
-	}
-
-	ossClient = &OSS{
-		Bucket: bucket,
-	}
+	ossClient = client
 }
 
 func TestOSS_Put(t *testing.T) {
