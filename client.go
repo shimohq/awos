@@ -29,7 +29,7 @@ type Client interface {
 
 // Options for New method
 type Options struct {
-	// Required, value is one of oss/aws/s3/minio, case insensetive
+	// Required, value is one of oss/s3, case insensetive
 	StorageType string
 	// Required
 	AccessKeyID string
@@ -92,7 +92,7 @@ func New(options *Options) (Client, error) {
 		miossClient = ossClient
 
 		return miossClient, nil
-	} else if storageType == "aws" || storageType == "s3" || storageType == "minio" {
+	} else if storageType == "s3" {
 		var sess *session.Session
 
 		// use minio
@@ -136,6 +136,6 @@ func New(options *Options) (Client, error) {
 
 		return miossClient, nil
 	} else {
-		return nil, fmt.Errorf("Unknown StorageType:\"%s\", only supports oss,s3,minio,aws", options.StorageType)
+		return nil, fmt.Errorf("Unknown StorageType:\"%s\", only supports oss,s3", options.StorageType)
 	}
 }
