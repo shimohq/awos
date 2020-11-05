@@ -1,7 +1,5 @@
 # AWOS: Wrapper For Aliyun OSS And Amazon S3
 
-[![](https://img.shields.io/badge/version-2.0.0-brightgreen.svg)](https://github.com/shimohq/awos)
-
 awos for node: https://github.com/shimohq/awos-js
 
 ## Features
