@@ -25,6 +25,7 @@ type Client interface {
 	GetAndDecompress(key string) (string, error)
 	GetAndDecompressAsReader(key string) (io.ReadCloser, error)
 	CompressAndPut(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
+	Range(key string, offset int64, length int64) (io.ReadCloser, error)
 }
 
 // Options for New method

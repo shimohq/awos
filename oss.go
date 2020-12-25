@@ -68,6 +68,10 @@ func (ossClient *OSS) Get(key string) (string, error) {
 	return string(data), nil
 }
 
+func (ossClient *OSS) Range(key string, offset int64, length int64) (io.ReadCloser, error) {
+	return ossClient.Bucket.GetObject(key, oss.Range(offset, offset+length-1))
+}
+
 func (ossClient *OSS) GetAndDecompress(key string) (string, error) {
 	result, err := ossClient.get(key)
 

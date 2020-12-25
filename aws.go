@@ -3,6 +3,7 @@ package awos
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -76,6 +77,20 @@ func (a *AWS) Get(key string) (string, error) {
 	}
 
 	return string(data), nil
+}
+
+func (a *AWS) Range(key string, offset int64, length int64) (io.ReadCloser, error) {
+	readRange := fmt.Sprintf("bytes=%d-%d", offset, offset+length-1)
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(a.BucketName),
+		Key:    aws.String(key),
+		Range:  &readRange,
+	}
+	r, err := a.Client.GetObject(input)
+	if err != nil {
+		return nil, err
+	}
+	return r.Body, nil
 }
 
 func (a *AWS) GetAndDecompress(key string) (string, error) {

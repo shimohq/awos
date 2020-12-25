@@ -240,3 +240,23 @@ func TestAWS_DelMulti(t *testing.T) {
 		}
 	}
 }
+
+func TestAWS_Range(t *testing.T) {
+	meta := make(map[string]string)
+	err := awsClient.Put(guid, strings.NewReader("123456"), meta)
+	if err != nil {
+		t.Log("aws put error", err)
+		t.Fail()
+	}
+
+	res, err := awsClient.Range(guid, 3, 3)
+	if err != nil {
+		t.Log("aws range error", err)
+		t.Fail()
+	}
+
+	byteRes, _ := ioutil.ReadAll(res)
+	if string(byteRes) != "456" {
+		t.Fatalf("aws range as reader, expect:%s, but is %s", "456", string(byteRes))
+	}
+}

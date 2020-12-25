@@ -223,3 +223,23 @@ func TestOSS_GetNotExist(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestOSS_Range(t *testing.T) {
+	meta := make(map[string]string)
+	err := ossClient.Put(guid, strings.NewReader("123456"), meta)
+	if err != nil {
+		t.Log("oss put error", err)
+		t.Fail()
+	}
+
+	res, err := ossClient.Range(guid, 3, 3)
+	if err != nil {
+		t.Log("oss range error", err)
+		t.Fail()
+	}
+
+	byteRes, _ := ioutil.ReadAll(res)
+	if string(byteRes) != "456" {
+		t.Fatalf("oss range as reader, expect:%s, but is %s", "456", string(byteRes))
+	}
+}
