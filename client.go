@@ -54,7 +54,6 @@ type Options struct {
 
 // New awos Client instance
 func New(options *Options) (Client, error) {
-	var miossClient Client
 	storageType := strings.ToLower(options.StorageType)
 
 	if storageType == "oss" {
@@ -90,17 +89,15 @@ func New(options *Options) (Client, error) {
 			}
 		}
 
-		miossClient = ossClient
-
-		return miossClient, nil
+		return ossClient, nil
 	} else if storageType == "s3" {
 		var sess *session.Session
 
 		// use minio
-		if options.S3ForcePathStyle == true {
+		if options.S3ForcePathStyle {
 			sess = session.Must(session.NewSession(&aws.Config{
 				Region:           aws.String(options.Region),
-				DisableSSL:       aws.Bool(options.SSL == false),
+				DisableSSL:       aws.Bool(!options.SSL),
 				Credentials:      credentials.NewStaticCredentials(options.AccessKeyID, options.AccessKeySecret, ""),
 				Endpoint:         aws.String(options.Endpoint),
 				S3ForcePathStyle: aws.Bool(true),
@@ -108,13 +105,13 @@ func New(options *Options) (Client, error) {
 		} else {
 			sess = session.Must(session.NewSession(&aws.Config{
 				Region:      aws.String(options.Region),
-				DisableSSL:  aws.Bool(options.SSL == false),
+				DisableSSL:  aws.Bool(!options.SSL),
 				Credentials: credentials.NewStaticCredentials(options.AccessKeyID, options.AccessKeySecret, ""),
 			}))
 		}
 		service := s3.New(sess)
 
-		var awsClient *AWS
+		var s3Client *S3
 		if options.Shards != nil && len(options.Shards) > 0 {
 			buckets := make(map[string]string)
 			for _, v := range options.Shards {
@@ -122,20 +119,18 @@ func New(options *Options) (Client, error) {
 					buckets[strings.ToLower(v[i:i+1])] = options.Bucket + "-" + v
 				}
 			}
-			awsClient = &AWS{
+			s3Client = &S3{
 				ShardsBucket: buckets,
 				Client:       service,
 			}
 		} else {
-			awsClient = &AWS{
+			s3Client = &S3{
 				BucketName: options.Bucket,
 				Client:     service,
 			}
 		}
 
-		miossClient = awsClient
-
-		return miossClient, nil
+		return s3Client, nil
 	} else {
 		return nil, fmt.Errorf("Unknown StorageType:\"%s\", only supports oss,s3", options.StorageType)
 	}

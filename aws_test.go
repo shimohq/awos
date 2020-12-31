@@ -16,13 +16,13 @@ import (
 )
 
 const (
-	AWSGuid         = "test123"
-	AWSContent      = "aaaaaa"
-	AWSExpectLength = 6
-	AWSExpectHead   = 1
+	S3Guid         = "test123"
+	S3Content      = "aaaaaa"
+	S3ExpectLength = 6
+	S3ExpectHead   = 1
 
-	AWSCompressGUID    = "test123-snappy"
-	AWSCompressContent = "snappy-contentsnappy-contentsnappy-contentsnappy-content"
+	S3CompressGUID    = "test123-snappy"
+	S3CompressContent = "snappy-contentsnappy-contentsnappy-contentsnappy-content"
 )
 
 var (
@@ -53,43 +53,43 @@ func init() {
 	awsClient = client
 }
 
-func TestAWS_Put(t *testing.T) {
+func TestS3_Put(t *testing.T) {
 	meta := make(map[string]string)
-	meta["head"] = strconv.Itoa(AWSExpectHead)
-	meta["length"] = strconv.Itoa(AWSExpectLength)
+	meta["head"] = strconv.Itoa(S3ExpectHead)
+	meta["length"] = strconv.Itoa(S3ExpectLength)
 
-	err := awsClient.Put(AWSGuid, strings.NewReader(AWSContent), meta)
+	err := awsClient.Put(S3Guid, strings.NewReader(S3Content), meta)
 	if err != nil {
 		t.Log("aws put error", err)
 		t.Fail()
 	}
 
-	err = awsClient.Put(AWSGuid, bytes.NewReader([]byte(AWSContent)), meta)
+	err = awsClient.Put(S3Guid, bytes.NewReader([]byte(S3Content)), meta)
 	if err != nil {
 		t.Log("aws put error", err)
 		t.Fail()
 	}
 }
 
-func TestAWS_CompressAndPut(t *testing.T) {
+func TestS3_CompressAndPut(t *testing.T) {
 	meta := make(map[string]string)
-	meta["head"] = strconv.Itoa(AWSExpectHead)
-	meta["length"] = strconv.Itoa(AWSExpectLength)
+	meta["head"] = strconv.Itoa(S3ExpectHead)
+	meta["length"] = strconv.Itoa(S3ExpectLength)
 
-	err := awsClient.CompressAndPut(AWSCompressGUID, strings.NewReader(AWSCompressContent), meta)
+	err := awsClient.CompressAndPut(S3CompressGUID, strings.NewReader(S3CompressContent), meta)
 	if err != nil {
 		t.Log("aws put error", err)
 		t.Fail()
 	}
 
-	err = awsClient.CompressAndPut(AWSCompressGUID, bytes.NewReader([]byte(AWSCompressContent)), meta)
+	err = awsClient.CompressAndPut(S3CompressGUID, bytes.NewReader([]byte(S3CompressContent)), meta)
 	if err != nil {
 		t.Log("aws put error", err)
 		t.Fail()
 	}
 }
 
-func TestAWS_Head(t *testing.T) {
+func TestS3_Head(t *testing.T) {
 	attributes := make([]string, 0)
 	attributes = append(attributes, "head")
 	var res map[string]string
@@ -97,7 +97,7 @@ func TestAWS_Head(t *testing.T) {
 	var head int
 	var length int
 
-	res, err = awsClient.Head(AWSGuid, attributes)
+	res, err = awsClient.Head(S3Guid, attributes)
 	if err != nil {
 		t.Log("aws head error", err)
 		t.Fail()
@@ -110,7 +110,7 @@ func TestAWS_Head(t *testing.T) {
 	}
 
 	attributes = append(attributes, "length")
-	res, err = awsClient.Head(AWSGuid, attributes)
+	res, err = awsClient.Head(S3Guid, attributes)
 	if err != nil {
 		t.Log("aws head error", err)
 		t.Fail()
@@ -118,94 +118,94 @@ func TestAWS_Head(t *testing.T) {
 
 	head, err = strconv.Atoi(res["head"])
 	length, err = strconv.Atoi(res["length"])
-	if err != nil || head != AWSExpectHead || length != AWSExpectLength {
+	if err != nil || head != S3ExpectHead || length != S3ExpectLength {
 		t.Log("aws get head fail, res:", res, "err:", err)
 		t.Fail()
 	}
 }
 
-func TestAWS_Get(t *testing.T) {
-	res, err := awsClient.Get(AWSGuid)
-	if err != nil || res != AWSContent {
-		t.Log("aws get AWSContent fail, res:", res, "err:", err)
+func TestS3_Get(t *testing.T) {
+	res, err := awsClient.Get(S3Guid)
+	if err != nil || res != S3Content {
+		t.Log("aws get S3Content fail, res:", res, "err:", err)
 		t.Fail()
 	}
 
-	res1, err := awsClient.GetAsReader(AWSGuid)
+	res1, err := awsClient.GetAsReader(S3Guid)
 	if err != nil {
 		t.Fatal("aws get content as reader fail, err:", err)
 	}
 
 	byteRes, _ := ioutil.ReadAll(res1)
-	if string(byteRes) != AWSContent {
+	if string(byteRes) != S3Content {
 		t.Fatal("aws get as reader, readAll error")
 	}
 }
 
 // compressed content
-func TestAWS_GetAndDecompress(t *testing.T) {
-	res, err := awsClient.GetAndDecompress(AWSCompressGUID)
-	if err != nil || res != AWSCompressContent {
-		t.Log("aws get AWS conpressed Content fail, res:", res, "err:", err)
+func TestS3_GetAndDecompress(t *testing.T) {
+	res, err := awsClient.GetAndDecompress(S3CompressGUID)
+	if err != nil || res != S3CompressContent {
+		t.Log("aws get S3 conpressed Content fail, res:", res, "err:", err)
 		t.Fail()
 	}
 
-	res1, err := awsClient.GetAndDecompressAsReader(AWSCompressGUID)
+	res1, err := awsClient.GetAndDecompressAsReader(S3CompressGUID)
 	if err != nil {
 		t.Fatal("aws get compressed content as reader fail, err:", err)
 	}
 
 	byteRes, error := ioutil.ReadAll(res1)
-	if string(byteRes) != AWSCompressContent || error != nil {
+	if string(byteRes) != S3CompressContent || error != nil {
 		t.Fatal("aws get as reader, readAll error0", string(byteRes), error)
 	}
 }
 
 // non-compressed content
-func TestAWS_GetAndDecompress2(t *testing.T) {
-	res, err := awsClient.GetAndDecompress(AWSGuid)
-	if err != nil || res != AWSContent {
-		t.Log("aws get AWSContent fail, res:", res, "err:", err)
+func TestS3_GetAndDecompress2(t *testing.T) {
+	res, err := awsClient.GetAndDecompress(S3Guid)
+	if err != nil || res != S3Content {
+		t.Log("aws get S3Content fail, res:", res, "err:", err)
 		t.Fail()
 	}
 
-	res1, err := awsClient.GetAndDecompressAsReader(AWSGuid)
+	res1, err := awsClient.GetAndDecompressAsReader(S3Guid)
 	if err != nil {
 		t.Fatal("aws get content as reader fail, err:", err)
 	}
 
 	byteRes, _ := ioutil.ReadAll(res1)
-	if string(byteRes) != AWSContent {
+	if string(byteRes) != S3Content {
 		t.Fatal("aws get as reader, readAll error")
 	}
 }
 
-func TestAWS_SignURL(t *testing.T) {
-	res, err := awsClient.SignURL(AWSGuid, 60)
+func TestS3_SignURL(t *testing.T) {
+	res, err := awsClient.SignURL(S3Guid, 60)
 	if err != nil {
 		t.Log("oss signUrl fail, res:", res, "err:", err)
 		t.Fail()
 	}
 }
 
-func TestAWS_ListObject(t *testing.T) {
-	res, err := awsClient.ListObject(AWSGuid, AWSGuid[0:4], "", 10, "")
+func TestS3_ListObject(t *testing.T) {
+	res, err := awsClient.ListObject(S3Guid, S3Guid[0:4], "", 10, "")
 	if err != nil || len(res) == 0 {
 		t.Log("aws list objects fail, res:", res, "err:", err)
 		t.Fail()
 	}
 }
 
-func TestAWS_Del(t *testing.T) {
-	err := awsClient.Del(AWSGuid)
+func TestS3_Del(t *testing.T) {
+	err := awsClient.Del(S3Guid)
 	if err != nil {
 		t.Log("aws del key fail, err:", err)
 		t.Fail()
 	}
 }
 
-func TestAWS_GetNotExist(t *testing.T) {
-	res1, err := awsClient.Get(AWSGuid + "123")
+func TestS3_GetNotExist(t *testing.T) {
+	res1, err := awsClient.Get(S3Guid + "123")
 	if res1 != "" || err != nil {
 		t.Log("aws get not exist key fail, res:", res1, "err:", err)
 		t.Fail()
@@ -213,14 +213,14 @@ func TestAWS_GetNotExist(t *testing.T) {
 
 	attributes := make([]string, 0)
 	attributes = append(attributes, "head")
-	res2, err := awsClient.Head(AWSGuid+"123", attributes)
+	res2, err := awsClient.Head(S3Guid+"123", attributes)
 	if res2 != nil || err != nil {
 		t.Log("aws head not exist key fail, res:", res2, "err:", err, err.Error())
 		t.Fail()
 	}
 }
 
-func TestAWS_DelMulti(t *testing.T) {
+func TestS3_DelMulti(t *testing.T) {
 	keys := []string{"aaa", "bbb", "ccc"}
 	for _, key := range keys {
 		awsClient.Put(key, strings.NewReader("2333333"), nil)
@@ -241,7 +241,7 @@ func TestAWS_DelMulti(t *testing.T) {
 	}
 }
 
-func TestAWS_Range(t *testing.T) {
+func TestS3_Range(t *testing.T) {
 	meta := make(map[string]string)
 	err := awsClient.Put(guid, strings.NewReader("123456"), meta)
 	if err != nil {

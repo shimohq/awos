@@ -16,13 +16,13 @@ import (
 	"github.com/golang/snappy"
 )
 
-type AWS struct {
+type S3 struct {
 	ShardsBucket map[string]string
 	BucketName   string
 	Client       *s3.S3
 }
 
-func (a *AWS) getBucket(key string) (string, error) {
+func (a *S3) getBucket(key string) (string, error) {
 	if a.ShardsBucket != nil && len(a.ShardsBucket) > 0 {
 		keyLength := len(key)
 		bucketName := a.ShardsBucket[strings.ToLower(key[keyLength-1:keyLength])]
@@ -37,7 +37,7 @@ func (a *AWS) getBucket(key string) (string, error) {
 }
 
 // don't forget to call the close() method of the io.ReadCloser
-func (a *AWS) GetAsReader(key string, options ...GetOptions) (io.ReadCloser, error) {
+func (a *S3) GetAsReader(key string, options ...GetOptions) (io.ReadCloser, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (a *AWS) GetAsReader(key string, options ...GetOptions) (io.ReadCloser, err
 	return result.Body, err
 }
 
-func (a *AWS) Get(key string, options ...GetOptions) (string, error) {
+func (a *S3) Get(key string, options ...GetOptions) (string, error) {
 	result, err := a.get(key)
 	if err != nil {
 		return "", err
@@ -80,7 +80,7 @@ func (a *AWS) Get(key string, options ...GetOptions) (string, error) {
 	return string(data), nil
 }
 
-func (a *AWS) Range(key string, offset int64, length int64) (io.ReadCloser, error) {
+func (a *S3) Range(key string, offset int64, length int64) (io.ReadCloser, error) {
 	readRange := fmt.Sprintf("bytes=%d-%d", offset, offset+length-1)
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(a.BucketName),
@@ -94,7 +94,7 @@ func (a *AWS) Range(key string, offset int64, length int64) (io.ReadCloser, erro
 	return r.Body, nil
 }
 
-func (a *AWS) GetAndDecompress(key string) (string, error) {
+func (a *S3) GetAndDecompress(key string) (string, error) {
 	result, err := a.get(key)
 
 	if err != nil {
@@ -150,7 +150,7 @@ func (a *AWS) GetAndDecompress(key string) (string, error) {
 	return string(data), nil
 }
 
-func (a *AWS) GetAndDecompressAsReader(key string) (io.ReadCloser, error) {
+func (a *S3) GetAndDecompressAsReader(key string) (io.ReadCloser, error) {
 	result, err := a.GetAndDecompress(key)
 	if err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ func (a *AWS) GetAndDecompressAsReader(key string) (io.ReadCloser, error) {
 	return ioutil.NopCloser(strings.NewReader(result)), nil
 }
 
-func (a *AWS) Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
+func (a *S3) Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return err
@@ -191,7 +191,7 @@ func (a *AWS) Put(key string, reader io.ReadSeeker, meta map[string]string, opti
 	return err
 }
 
-func (a *AWS) CompressAndPut(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
+func (a *S3) CompressAndPut(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return err
@@ -207,7 +207,7 @@ func (a *AWS) CompressAndPut(key string, reader io.ReadSeeker, meta map[string]s
 	return a.Put(key, bytes.NewReader(encodedBytes), meta, options...)
 }
 
-func (a *AWS) Del(key string) error {
+func (a *S3) Del(key string) error {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return err
@@ -222,7 +222,7 @@ func (a *AWS) Del(key string) error {
 	return err
 }
 
-func (a *AWS) DelMulti(keys []string) error {
+func (a *S3) DelMulti(keys []string) error {
 	delObjects := make([]*s3.ObjectIdentifier, len(keys))
 
 	for idx, key := range keys {
@@ -243,7 +243,7 @@ func (a *AWS) DelMulti(keys []string) error {
 	return err
 }
 
-func (a *AWS) Head(key string, meta []string) (map[string]string, error) {
+func (a *S3) Head(key string, meta []string) (map[string]string, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return nil, err
@@ -278,7 +278,7 @@ func (a *AWS) Head(key string, meta []string) (map[string]string, error) {
 	return res, nil
 }
 
-func (a *AWS) ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error) {
+func (a *S3) ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return nil, err
@@ -313,7 +313,7 @@ func (a *AWS) ListObject(key string, prefix string, marker string, maxKeys int, 
 	return keys, nil
 }
 
-func (a *AWS) SignURL(key string, expired int64) (string, error) {
+func (a *S3) SignURL(key string, expired int64) (string, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return "", err
@@ -328,7 +328,7 @@ func (a *AWS) SignURL(key string, expired int64) (string, error) {
 	return req.Presign(time.Duration(expired) * time.Second)
 }
 
-func (a *AWS) get(key string, options ...GetOptions) (*s3.GetObjectOutput, error) {
+func (a *S3) get(key string, options ...GetOptions) (*s3.GetObjectOutput, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return nil, err
