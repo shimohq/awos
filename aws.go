@@ -37,7 +37,7 @@ func (a *AWS) getBucket(key string) (string, error) {
 }
 
 // don't forget to call the close() method of the io.ReadCloser
-func (a *AWS) GetAsReader(key string) (io.ReadCloser, error) {
+func (a *AWS) GetAsReader(key string, options ...GetOptions) (io.ReadCloser, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return nil, err
@@ -47,12 +47,13 @@ func (a *AWS) GetAsReader(key string) (io.ReadCloser, error) {
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
 	}
+	setS3Options(options, input)
 
 	result, err := a.Client.GetObject(input)
 	return result.Body, err
 }
 
-func (a *AWS) Get(key string) (string, error) {
+func (a *AWS) Get(key string, options ...GetOptions) (string, error) {
 	result, err := a.get(key)
 	if err != nil {
 		return "", err
@@ -158,38 +159,13 @@ func (a *AWS) GetAndDecompressAsReader(key string) (io.ReadCloser, error) {
 	return ioutil.NopCloser(strings.NewReader(result)), nil
 }
 
-func (a *AWS) get(key string) (*s3.GetObjectOutput, error) {
-	bucketName, err := a.getBucket(key)
-	if err != nil {
-		return nil, err
-	}
-
-	input := &s3.GetObjectInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(key),
-	}
-
-	result, err := a.Client.GetObject(input)
-
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == s3.ErrCodeNoSuchKey {
-				return nil, nil
-			}
-		}
-		return nil, err
-	}
-
-	return result, nil
-}
-
 func (a *AWS) Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return err
 	}
 
-	putOptions := DefaultPutOptions
+	putOptions := DefaultPutOptions()
 	for _, opt := range options {
 		opt(putOptions)
 	}
@@ -350,4 +326,43 @@ func (a *AWS) SignURL(key string, expired int64) (string, error) {
 
 	req, _ := a.Client.GetObjectRequest(input)
 	return req.Presign(time.Duration(expired) * time.Second)
+}
+
+func (a *AWS) get(key string, options ...GetOptions) (*s3.GetObjectOutput, error) {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
+	}
+	setS3Options(options, input)
+
+	result, err := a.Client.GetObject(input)
+
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() == s3.ErrCodeNoSuchKey {
+				return nil, nil
+			}
+		}
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func setS3Options(options []GetOptions, getObjectInput *s3.GetObjectInput) {
+	getOpts := DefaultGetOptions()
+	for _, opt := range options {
+		opt(getOpts)
+	}
+	if getOpts.contentEncoding != nil {
+		getObjectInput.ResponseContentEncoding = getOpts.contentEncoding
+	}
+	if getOpts.contentType != nil {
+		getObjectInput.ResponseContentType = getOpts.contentType
+	}
 }

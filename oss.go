@@ -33,17 +33,17 @@ func (ossClient *OSS) getBucket(key string) (*oss.Bucket, error) {
 }
 
 // don't forget to call the close() method of the io.ReadCloser
-func (ossClient *OSS) GetAsReader(key string) (io.ReadCloser, error) {
+func (ossClient *OSS) GetAsReader(key string, options ...GetOptions) (io.ReadCloser, error) {
 	bucket, err := ossClient.getBucket(key)
 	if err != nil {
 		return nil, err
 	}
 
-	return bucket.GetObject(key)
+	return bucket.GetObject(key, getOSSOptions(options)...)
 }
 
-func (ossClient *OSS) Get(key string) (string, error) {
-	result, err := ossClient.get(key)
+func (ossClient *OSS) Get(key string, options ...GetOptions) (string, error) {
+	result, err := ossClient.get(key, options...)
 
 	if err != nil {
 		return "", err
@@ -134,33 +134,13 @@ func (ossClient *OSS) GetAndDecompressAsReader(key string) (io.ReadCloser, error
 	return ioutil.NopCloser(strings.NewReader(ret)), nil
 }
 
-func (ossClient *OSS) get(key string) (*oss.GetObjectResult, error) {
-	bucket, err := ossClient.getBucket(key)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := bucket.DoGetObject(&oss.GetObjectRequest{ObjectKey: key}, []oss.Option{})
-
-	if err != nil {
-		if oerr, ok := err.(oss.ServiceError); ok {
-			if oerr.StatusCode == 404 {
-				return nil, nil
-			}
-		}
-		return nil, err
-	}
-
-	return result, nil
-}
-
 func (ossClient *OSS) Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error {
 	bucket, err := ossClient.getBucket(key)
 	if err != nil {
 		return err
 	}
 
-	putOptions := DefaultPutOptions
+	putOptions := DefaultPutOptions()
 	for _, opt := range options {
 		opt(putOptions)
 	}
@@ -264,4 +244,40 @@ func (ossClient *OSS) SignURL(key string, expired int64) (string, error) {
 	}
 
 	return bucket.SignURL(key, oss.HTTPGet, expired)
+}
+
+func getOSSOptions(options []GetOptions) []oss.Option {
+	getOpts := DefaultGetOptions()
+	ossOpts := make([]oss.Option, 0)
+	for _, opt := range options {
+		opt(getOpts)
+	}
+	if getOpts.contentEncoding != nil {
+		ossOpts = append(ossOpts, oss.ContentEncoding(*getOpts.contentEncoding))
+	}
+	if getOpts.contentType != nil {
+		ossOpts = append(ossOpts, oss.ContentEncoding(*getOpts.contentType))
+	}
+
+	return ossOpts
+}
+
+func (ossClient *OSS) get(key string, options ...GetOptions) (*oss.GetObjectResult, error) {
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := bucket.DoGetObject(&oss.GetObjectRequest{ObjectKey: key}, getOSSOptions(options))
+
+	if err != nil {
+		if oerr, ok := err.(oss.ServiceError); ok {
+			if oerr.StatusCode == 404 {
+				return nil, nil
+			}
+		}
+		return nil, err
+	}
+
+	return result, nil
 }

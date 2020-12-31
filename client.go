@@ -14,8 +14,8 @@ import (
 
 // Client interface
 type Client interface {
-	Get(key string) (string, error)
-	GetAsReader(key string) (io.ReadCloser, error)
+	Get(key string, options ...GetOptions) (string, error)
+	GetAsReader(key string, options ...GetOptions) (io.ReadCloser, error)
 	Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
 	Del(key string) error
 	DelMulti(keys []string) error

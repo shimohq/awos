@@ -12,6 +12,31 @@ func PutWithContentType(contentType string) PutOptions {
 	}
 }
 
-var DefaultPutOptions = &putOptions{
-	contentType: "text/plain",
+func DefaultPutOptions() *putOptions {
+	return &putOptions{
+		contentType: "text/plain",
+	}
+}
+
+type getOptions struct {
+	contentType     *string
+	contentEncoding *string
+}
+
+func DefaultGetOptions() *getOptions {
+	return &getOptions{}
+}
+
+type GetOptions func(options *getOptions)
+
+func GetWithContentType(contentType string) GetOptions {
+	return func(options *getOptions) {
+		options.contentType = &contentType
+	}
+}
+
+func GetWithContentEncoding(contentEncoding string) GetOptions {
+	return func(options *getOptions) {
+		options.contentEncoding = &contentEncoding
+	}
 }
