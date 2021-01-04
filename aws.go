@@ -177,6 +177,9 @@ func (a *S3) Put(key string, reader io.ReadSeeker, meta map[string]string, optio
 		Metadata:    aws.StringMap(meta),
 		ContentType: aws.String(putOptions.contentType),
 	}
+	if putOptions.contentEncoding != nil {
+		input.ContentEncoding = putOptions.contentEncoding
+	}
 
 	err = retry.Do(func() error {
 		_, err := a.Client.PutObject(input)

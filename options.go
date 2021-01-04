@@ -1,7 +1,8 @@
 package awos
 
 type putOptions struct {
-	contentType string
+	contentType     string
+	contentEncoding *string
 }
 
 type PutOptions func(options *putOptions)
@@ -9,6 +10,12 @@ type PutOptions func(options *putOptions)
 func PutWithContentType(contentType string) PutOptions {
 	return func(options *putOptions) {
 		options.contentType = contentType
+	}
+}
+
+func PutWithContentEncoding(contentEncoding string) PutOptions {
+	return func(options *putOptions) {
+		options.contentEncoding = &contentEncoding
 	}
 }
 
