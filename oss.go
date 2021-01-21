@@ -155,6 +155,9 @@ func (ossClient *OSS) Put(key string, reader io.ReadSeeker, meta map[string]stri
 	if putOptions.contentEncoding != nil {
 		ossOptions = append(ossOptions, oss.ContentEncoding(*putOptions.contentEncoding))
 	}
+	if putOptions.contentDisposition != nil {
+		ossOptions = append(ossOptions, oss.ContentDisposition(*putOptions.contentDisposition))
+	}
 
 	return retry.Do(func() error {
 		err := bucket.PutObject(key, reader, ossOptions...)
