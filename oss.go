@@ -39,7 +39,17 @@ func (ossClient *OSS) GetAsReader(key string, options ...GetOptions) (io.ReadClo
 		return nil, err
 	}
 
-	return bucket.GetObject(key, getOSSOptions(options)...)
+	readCloser, err := bucket.GetObject(key, getOSSOptions(options)...)
+	if err != nil {
+		if oerr, ok := err.(oss.ServiceError); ok {
+			if oerr.StatusCode == 404 {
+				return nil, nil
+			}
+		}
+		return nil, err
+	}
+
+	return readCloser, nil
 }
 
 func (ossClient *OSS) Get(key string, options ...GetOptions) (string, error) {

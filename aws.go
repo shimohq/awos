@@ -50,11 +50,20 @@ func (a *S3) GetAsReader(key string, options ...GetOptions) (io.ReadCloser, erro
 	setS3Options(options, input)
 
 	result, err := a.Client.GetObject(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() == s3.ErrCodeNoSuchKey {
+				return nil, nil
+			}
+		}
+		return nil, err
+	}
+
 	return result.Body, err
 }
 
 func (a *S3) Get(key string, options ...GetOptions) (string, error) {
-	result, err := a.get(key)
+	result, err := a.get(key, options...)
 	if err != nil {
 		return "", err
 	}
