@@ -62,6 +62,41 @@ func (a *S3) GetAsReader(key string, options ...GetOptions) (io.ReadCloser, erro
 	return result.Body, err
 }
 
+// don't forget to call the close() method of the io.ReadCloser
+func (a *S3) GetWithMeta(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error) {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
+	}
+	setS3Options(options, input)
+
+	result, err := a.Client.GetObject(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() == s3.ErrCodeNoSuchKey {
+				return nil, nil, nil
+			}
+		}
+		return nil, nil, err
+	}
+
+	// https://github.com/aws/aws-sdk-go/issues/445
+	// aws 会将 meta 的首字母大写，在这里需要转换下
+	meta := make(map[string]string)
+	for _, v := range attributes {
+		key := strings.Title(v)
+		if result.Metadata[key] != nil {
+			meta[v] = *result.Metadata[key]
+		}
+	}
+	return result.Body, meta, err
+}
+
 func (a *S3) Get(key string, options ...GetOptions) (string, error) {
 	result, err := a.get(key, options...)
 	if err != nil {

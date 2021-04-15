@@ -104,7 +104,7 @@ func TestOSS_Head(t *testing.T) {
 	}
 
 	head, err = strconv.Atoi(res["head"])
-	if err != nil || head != 1 {
+	if err != nil || head != expectHead {
 		t.Log("oss get head fail, res:", res, "err:", err)
 		t.Fail()
 	}
@@ -141,10 +141,30 @@ func TestOSS_Get(t *testing.T) {
 	if err != nil {
 		t.Fatal("oss get content as reader fail, err:", err)
 	}
-
+	defer res1.Close()
 	byteRes, _ := ioutil.ReadAll(res1)
 	if string(byteRes) != content {
 		t.Fatal("oss get as reader, readAll error")
+	}
+}
+
+func TestOSS_GetWithMeta(t *testing.T) {
+	attributes := make([]string, 0)
+	attributes = append(attributes, "head")
+	res, meta, err := ossClient.GetWithMeta(guid, attributes)
+	if err != nil {
+		t.Fatal("oss get content as reader fail, err:", err)
+	}
+	defer res.Close()
+	byteRes, _ := ioutil.ReadAll(res)
+	if string(byteRes) != content {
+		t.Fatal("oss get as reader, readAll error")
+	}
+
+	head, err := strconv.Atoi(meta["head"])
+	if err != nil || head != expectHead {
+		t.Log("oss get head fail, res:", res, "err:", err)
+		t.Fail()
 	}
 }
 

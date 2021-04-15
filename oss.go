@@ -52,6 +52,30 @@ func (ossClient *OSS) GetAsReader(key string, options ...GetOptions) (io.ReadClo
 	return readCloser, nil
 }
 
+// don't forget to call the close() method of the io.ReadCloser
+func (ossClient *OSS) GetWithMeta(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error) {
+	result, err := ossClient.get(key, options...)
+	if err != nil {
+		if oerr, ok := err.(oss.ServiceError); ok {
+			if oerr.StatusCode == 404 {
+				return nil, nil, nil
+			}
+		}
+		return nil, nil, err
+	}
+
+	headers := result.Response.Headers
+	meta := make(map[string]string)
+	for _, v := range attributes {
+		meta[v] = headers.Get(v)
+		if headers.Get(v) == "" {
+			meta[v] = headers.Get(oss.HTTPHeaderOssMetaPrefix + v)
+		}
+	}
+
+	return result.Response.Body, meta, nil
+}
+
 func (ossClient *OSS) Get(key string, options ...GetOptions) (string, error) {
 	result, err := ossClient.get(key, options...)
 
