@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -64,16 +65,7 @@ func (ossClient *OSS) GetWithMeta(key string, attributes []string, options ...Ge
 		return nil, nil, err
 	}
 
-	headers := result.Response.Headers
-	meta := make(map[string]string)
-	for _, v := range attributes {
-		meta[v] = headers.Get(v)
-		if headers.Get(v) == "" {
-			meta[v] = headers.Get(oss.HTTPHeaderOssMetaPrefix + v)
-		}
-	}
-
-	return result.Response.Body, meta, nil
+	return result.Response.Body, getOSSMeta(attributes, result.Response.Headers), nil
 }
 
 func (ossClient *OSS) Get(key string, options ...GetOptions) (string, error) {
@@ -251,15 +243,7 @@ func (ossClient *OSS) Head(key string, attributes []string) (map[string]string, 
 		return nil, err
 	}
 
-	res := make(map[string]string)
-	for _, v := range attributes {
-		res[v] = headers.Get(v)
-		if headers.Get(v) == "" {
-			res[v] = headers.Get(oss.HTTPHeaderOssMetaPrefix + v)
-		}
-	}
-
-	return res, nil
+	return getOSSMeta(attributes, headers), nil
 }
 
 func (ossClient *OSS) ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error) {
@@ -284,6 +268,17 @@ func (ossClient *OSS) SignURL(key string, expired int64) (string, error) {
 	}
 
 	return bucket.SignURL(key, oss.HTTPGet, expired)
+}
+
+func getOSSMeta(attributes []string, headers http.Header) map[string]string {
+	meta := make(map[string]string)
+	for _, v := range attributes {
+		meta[v] = headers.Get(v)
+		if headers.Get(v) == "" {
+			meta[v] = headers.Get(oss.HTTPHeaderOssMetaPrefix + v)
+		}
+	}
+	return meta
 }
 
 func getOSSOptions(options []GetOptions) []oss.Option {

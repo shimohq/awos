@@ -84,17 +84,7 @@ func (a *S3) GetWithMeta(key string, attributes []string, options ...GetOptions)
 		}
 		return nil, nil, err
 	}
-
-	// https://github.com/aws/aws-sdk-go/issues/445
-	// aws 会将 meta 的首字母大写，在这里需要转换下
-	meta := make(map[string]string)
-	for _, v := range attributes {
-		key := strings.Title(v)
-		if result.Metadata[key] != nil {
-			meta[v] = *result.Metadata[key]
-		}
-	}
-	return result.Body, meta, err
+	return result.Body, getS3Meta(attributes, result.Metadata), err
 }
 
 func (a *S3) Get(key string, options ...GetOptions) (string, error) {
@@ -293,7 +283,7 @@ func (a *S3) DelMulti(keys []string) error {
 	return err
 }
 
-func (a *S3) Head(key string, meta []string) (map[string]string, error) {
+func (a *S3) Head(key string, attributes []string) (map[string]string, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return nil, err
@@ -314,18 +304,7 @@ func (a *S3) Head(key string, meta []string) (map[string]string, error) {
 		}
 		return nil, err
 	}
-
-	// https://github.com/aws/aws-sdk-go/issues/445
-	// aws 会将 meta 的首字母大写，在这里需要转换下
-	res := make(map[string]string)
-	for _, v := range meta {
-		key := strings.Title(v)
-		if result.Metadata[key] != nil {
-			res[v] = *result.Metadata[key]
-		}
-	}
-
-	return res, nil
+	return getS3Meta(attributes, result.Metadata), nil
 }
 
 func (a *S3) ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error) {
@@ -402,6 +381,19 @@ func (a *S3) get(key string, options ...GetOptions) (*s3.GetObjectOutput, error)
 	}
 
 	return result, nil
+}
+
+func getS3Meta(attributes []string, metaData map[string]*string) map[string]string {
+	// https://github.com/aws/aws-sdk-go/issues/445
+	// aws 会将 meta 的首字母大写，在这里需要转换下
+	res := make(map[string]string)
+	for _, v := range attributes {
+		key := strings.Title(v)
+		if metaData[key] != nil {
+			res[v] = *metaData[key]
+		}
+	}
+	return res
 }
 
 func setS3Options(options []GetOptions, getObjectInput *s3.GetObjectInput) {
