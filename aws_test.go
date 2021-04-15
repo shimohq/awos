@@ -104,7 +104,7 @@ func TestS3_Head(t *testing.T) {
 	}
 
 	head, err = strconv.Atoi(res["head"])
-	if err != nil || head != 1 {
+	if err != nil || head != S3ExpectHead {
 		t.Log("aws get head fail, res:", res, "err:", err)
 		t.Fail()
 	}
@@ -135,10 +135,31 @@ func TestS3_Get(t *testing.T) {
 	if err != nil {
 		t.Fatal("aws get content as reader fail, err:", err)
 	}
+	defer res1.Close()
 
 	byteRes, _ := ioutil.ReadAll(res1)
 	if string(byteRes) != S3Content {
 		t.Fatal("aws get as reader, readAll error")
+	}
+}
+
+func TestS3_GetWithMeta(t *testing.T) {
+	attributes := make([]string, 0)
+	attributes = append(attributes, "head")
+	res, meta, err := awsClient.GetWithMeta(S3Guid, attributes)
+	if err != nil {
+		t.Fatal("aws get content as reader fail, err:", err)
+	}
+	defer res.Close()
+	byteRes, _ := ioutil.ReadAll(res)
+	if string(byteRes) != S3Content {
+		t.Fatal("aws get as reader, readAll error")
+	}
+
+	head, err := strconv.Atoi(meta["head"])
+	if err != nil || head != S3ExpectHead {
+		t.Log("aws get head fail, res:", res, "err:", err)
+		t.Fail()
 	}
 }
 
