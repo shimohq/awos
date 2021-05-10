@@ -57,12 +57,10 @@ func (ossClient *OSS) GetAsReader(key string, options ...GetOptions) (io.ReadClo
 func (ossClient *OSS) GetWithMeta(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error) {
 	result, err := ossClient.get(key, options...)
 	if err != nil {
-		if oerr, ok := err.(oss.ServiceError); ok {
-			if oerr.StatusCode == 404 {
-				return nil, nil, nil
-			}
-		}
 		return nil, nil, err
+	}
+	if result == nil {
+		return nil, nil, nil
 	}
 
 	return result.Response.Body, getOSSMeta(attributes, result.Response.Headers), nil
@@ -70,11 +68,9 @@ func (ossClient *OSS) GetWithMeta(key string, attributes []string, options ...Ge
 
 func (ossClient *OSS) Get(key string, options ...GetOptions) (string, error) {
 	result, err := ossClient.get(key, options...)
-
 	if err != nil {
 		return "", err
 	}
-
 	if result == nil {
 		return "", nil
 	}
@@ -100,11 +96,9 @@ func (ossClient *OSS) Range(key string, offset int64, length int64) (io.ReadClos
 
 func (ossClient *OSS) GetAndDecompress(key string) (string, error) {
 	result, err := ossClient.get(key)
-
 	if err != nil {
 		return "", err
 	}
-
 	if result == nil {
 		return "", nil
 	}

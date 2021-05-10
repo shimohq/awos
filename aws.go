@@ -92,13 +92,11 @@ func (a *S3) Get(key string, options ...GetOptions) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	if result == nil {
 		return "", nil
 	}
 
 	body := result.Body
-
 	defer func() {
 		if body != nil {
 			body.Close()
@@ -106,11 +104,9 @@ func (a *S3) Get(key string, options ...GetOptions) (string, error) {
 	}()
 
 	data, err := ioutil.ReadAll(body)
-
 	if err != nil {
 		return "", err
 	}
-
 	return string(data), nil
 }
 
@@ -130,17 +126,14 @@ func (a *S3) Range(key string, offset int64, length int64) (io.ReadCloser, error
 
 func (a *S3) GetAndDecompress(key string) (string, error) {
 	result, err := a.get(key)
-
 	if err != nil {
 		return "", err
 	}
-
 	if result == nil {
 		return "", nil
 	}
 
 	body := result.Body
-
 	defer func() {
 		if body != nil {
 			body.Close()
@@ -148,7 +141,6 @@ func (a *S3) GetAndDecompress(key string) (string, error) {
 	}()
 
 	compressor := result.Metadata["Compressor"]
-
 	if compressor != nil {
 		if *compressor != "snappy" {
 			return "", errors.New("GetAndDecompress only supports snappy for now, got " + *compressor)
@@ -180,7 +172,6 @@ func (a *S3) GetAndDecompress(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	return string(data), nil
 }
 
