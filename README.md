@@ -25,25 +25,38 @@ import "github.com/shimohq/awos/v3"
 
 awsClient, err := awos.New(&awos.Options{
     // Required, value is one of oss/s3, case insensetive
-    StorageType: "string"
+    StorageType: "string",
     // Required
-    AccessKeyID: "string"
+    AccessKeyID: "string",
     // Required
-    AccessKeySecret: "string"
+    AccessKeySecret: "string",
+    // Required if it's s3-like
+    Endpoint: "string",
     // Required
-    Endpoint: "string"
-    // Required
-    Bucket: "string"
+    Bucket: "string",
     // Optional, choose which bucket to use based on the last character of the key,
     // if bucket is 'content', shards is ['abc', 'edf'],
     // then the last character of the key with a/b/c will automatically use the content-abc bucket, and vice versa
-    Shards: [2]string{"abc","def"}
+    Shards: [2]string{"abc","def"},
     // Only for s3-like
-    Region: "string"
+    Region: "string",
     // Only for s3-like, whether to force path style URLs for S3 objects.
-    S3ForcePathStyle: false
+    S3ForcePathStyle: false,
     // Only for s3-like
-    SSL: false
+    SSL: false,
+    // Only for s3-like, for presign URLs in different settings
+    Sign: &awos.SignOptions{
+      // Only for s3-like, you can assign a different endpoint for presign.
+      // default is the same as `Endpoint`
+      Endpoint: "string",
+      Region: "string",
+      SSL: true,
+      // Only for s3-like, assign the AWS-Signature-Version that you like to use,
+      // this can only be either `v4` or `v2`.
+      //
+      // default is `v4`
+      SignVersion: "v2",
+    },
 })
 ```
 

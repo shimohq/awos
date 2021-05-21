@@ -12,14 +12,24 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/snappy"
+	"github.com/shimohq/awos/v3/aws/s3v2"
+)
+
+const (
+	AWSSignVersion2 = "v2"
+	AWSSignVersion4 = "v4"
 )
 
 type S3 struct {
 	ShardsBucket map[string]string
 	BucketName   string
 	Client       *s3.S3
+	SignClient   *s3.S3
 }
 
 func (a *S3) getBucket(key string) (string, error) {
@@ -344,7 +354,7 @@ func (a *S3) SignURL(key string, expired int64) (string, error) {
 		Key:    aws.String(key),
 	}
 
-	req, _ := a.Client.GetObjectRequest(input)
+	req, _ := a.SignClient.GetObjectRequest(input)
 	return req.Presign(time.Duration(expired) * time.Second)
 }
 
@@ -398,4 +408,109 @@ func setS3Options(options []GetOptions, getObjectInput *s3.GetObjectInput) {
 	if getOpts.contentType != nil {
 		getObjectInput.ResponseContentType = getOpts.contentType
 	}
+}
+
+func createAWSConfigForS3Like(
+	endpoint string,
+	region string,
+	ssl bool,
+	accessKeyID string,
+	accessKeySecret string,
+) *aws.Config {
+	return &aws.Config{
+		Endpoint:         aws.String(endpoint),
+		Region:           aws.String(region),
+		DisableSSL:       aws.Bool(!ssl),
+		Credentials:      credentials.NewStaticCredentials(accessKeyID, accessKeySecret, ""),
+		S3ForcePathStyle: aws.Bool(true),
+	}
+}
+
+func createAWSConfigForS3(
+	region string,
+	ssl bool,
+	accessKeyID string,
+	accessKeySecret string,
+) *aws.Config {
+	return &aws.Config{
+		Region:      aws.String(region),
+		DisableSSL:  aws.Bool(!ssl),
+		Credentials: credentials.NewStaticCredentials(accessKeyID, accessKeySecret, ""),
+	}
+}
+
+func newS3(options *Options) (*S3, error) {
+	var config *aws.Config
+	if options.IsS3Like() {
+		config = createAWSConfigForS3Like(
+			options.Endpoint,
+			options.Region,
+			options.SSL,
+			options.AccessKeyID,
+			options.AccessKeySecret,
+		)
+	} else {
+		config = createAWSConfigForS3(
+			options.Region,
+			options.SSL,
+			options.AccessKeyID,
+			options.AccessKeySecret,
+		)
+	}
+	sess := session.Must(session.NewSession(config))
+	service := s3.New(sess)
+
+	var signService *s3.S3
+	if options.IsS3Like() && options.HasSignOptions() {
+		signService = buildSignClient(options)
+	} else {
+		signService = service
+	}
+
+	var s3Client *S3
+	if options.Shards != nil && len(options.Shards) > 0 {
+		s3Client = &S3{
+			ShardsBucket: buildShardBucket(options.Bucket, options.Shards),
+			Client:       service,
+			SignClient:   signService,
+		}
+	} else {
+		s3Client = &S3{
+			BucketName: options.Bucket,
+			Client:     service,
+			SignClient: signService,
+		}
+	}
+
+	return s3Client, nil
+}
+
+func buildShardBucket(bucket string, shards []string) map[string]string {
+	buckets := make(map[string]string)
+	for _, v := range shards {
+		for i := 0; i < len(v); i++ {
+			buckets[strings.ToLower(v[i:i+1])] = bucket + "-" + v
+		}
+	}
+	return buckets
+}
+
+func buildSignClient(options *Options) *s3.S3 {
+	config := createAWSConfigForS3Like(
+		options.Sign.Endpoint,
+		options.Sign.Region,
+		options.Sign.SSL,
+		options.AccessKeyID,
+		options.AccessKeySecret,
+	)
+	sess := session.Must(session.NewSession(config))
+	service := s3.New(sess)
+
+	// Replace sign handler if it's v2
+	if options.Sign.SignVersion == AWSSignVersion2 {
+		service.Handlers.Sign.RemoveByName(v4.SignRequestHandler.Name)
+		service.Handlers.Sign.PushBackNamed(s3v2.SignRequestHandler)
+	}
+
+	return service
 }
