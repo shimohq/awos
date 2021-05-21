@@ -12,14 +12,30 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/session"
+	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/snappy"
+	"github.com/shimohq/awos/v3/aws/s3v2"
+)
+
+const (
+	AWSSignVersion2 = "v2"
+	AWSSignVersion4 = "v4"
 )
 
 type S3 struct {
 	ShardsBucket map[string]string
 	BucketName   string
 	Client       *s3.S3
+
+	SignVersion string
+	// This function will be executed before presigning
+	ReplacePresignEndpoint PresignEndpointReplacer
+	// This function will be executed after presigned URL generated
+	ReplacePresignedURL PresignedURLReplacer
 }
 
 func (a *S3) getBucket(key string) (string, error) {
@@ -333,6 +349,39 @@ func (a *S3) ListObject(key string, prefix string, marker string, maxKeys int, d
 	return keys, nil
 }
 
+func (a *S3) createPresignRequest(input *s3.GetObjectInput) (*request.Request, *s3.GetObjectOutput) {
+	client := a.Client
+	op := &request.Operation{
+		Name:       "GetObject",
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}/{Key+}",
+	}
+
+	// ReplacePresignEndpoint hook
+	clientInfo := client.ClientInfo
+	if a.ReplacePresignEndpoint != nil {
+		clientInfo.Endpoint = a.ReplacePresignEndpoint(clientInfo.Endpoint)
+	}
+
+	// Replace signer
+	handlers := client.Handlers.Copy()
+	if a.SignVersion == AWSSignVersion2 {
+		handlers.Sign.Swap(v4.SignRequestHandler.Name, s3v2.SignRequestHandler)
+	}
+
+	output := &s3.GetObjectOutput{}
+	return request.New(
+			client.Config,
+			clientInfo,
+			handlers,
+			client.Retryer,
+			op,
+			input,
+			output,
+		),
+		output
+}
+
 func (a *S3) SignURL(key string, expired int64) (string, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
@@ -343,9 +392,17 @@ func (a *S3) SignURL(key string, expired int64) (string, error) {
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
 	}
+	req, _ := a.createPresignRequest(input)
+	presignedURLString, err := req.Presign(time.Duration(expired) * time.Second)
+	if err != nil {
+		return "", err
+	}
 
-	req, _ := a.Client.GetObjectRequest(input)
-	return req.Presign(time.Duration(expired) * time.Second)
+	if a.ReplacePresignedURL != nil {
+		return a.ReplacePresignedURL(presignedURLString), nil
+	}
+
+	return presignedURLString, nil
 }
 
 func (a *S3) get(key string, options ...GetOptions) (*s3.GetObjectOutput, error) {
@@ -398,4 +455,86 @@ func setS3Options(options []GetOptions, getObjectInput *s3.GetObjectInput) {
 	if getOpts.contentType != nil {
 		getObjectInput.ResponseContentType = getOpts.contentType
 	}
+}
+
+func createAWSConfigForS3Like(
+	endpoint string,
+	region string,
+	ssl bool,
+	accessKeyID string,
+	accessKeySecret string,
+) *aws.Config {
+	return &aws.Config{
+		Endpoint:         aws.String(endpoint),
+		Region:           aws.String(region),
+		DisableSSL:       aws.Bool(!ssl),
+		Credentials:      credentials.NewStaticCredentials(accessKeyID, accessKeySecret, ""),
+		S3ForcePathStyle: aws.Bool(true),
+	}
+}
+
+func createAWSConfigForS3(
+	region string,
+	ssl bool,
+	accessKeyID string,
+	accessKeySecret string,
+) *aws.Config {
+	return &aws.Config{
+		Region:      aws.String(region),
+		DisableSSL:  aws.Bool(!ssl),
+		Credentials: credentials.NewStaticCredentials(accessKeyID, accessKeySecret, ""),
+	}
+}
+
+func newS3(options *Options) (*S3, error) {
+	var config *aws.Config
+	if options.IsS3Like() {
+		config = createAWSConfigForS3Like(
+			options.Endpoint,
+			options.Region,
+			options.SSL,
+			options.AccessKeyID,
+			options.AccessKeySecret,
+		)
+	} else {
+		config = createAWSConfigForS3(
+			options.Region,
+			options.SSL,
+			options.AccessKeyID,
+			options.AccessKeySecret,
+		)
+	}
+	sess := session.Must(session.NewSession(config))
+	service := s3.New(sess)
+
+	var signVersion string
+	if options.SignVersion != "" {
+		signVersion = options.SignVersion
+	} else {
+		signVersion = AWSSignVersion4
+	}
+
+	s3Client := &S3{
+		Client:                 service,
+		SignVersion:            signVersion,
+		ReplacePresignEndpoint: options.ReplacePresignEndpoint,
+		ReplacePresignedURL:    options.ReplacePresignedURL,
+	}
+	if options.Shards != nil && len(options.Shards) > 0 {
+		s3Client.ShardsBucket = buildShardBucket(options.Bucket, options.Shards)
+	} else {
+		s3Client.BucketName = options.Bucket
+	}
+
+	return s3Client, nil
+}
+
+func buildShardBucket(bucket string, shards []string) map[string]string {
+	buckets := make(map[string]string)
+	for _, v := range shards {
+		for i := 0; i < len(v); i++ {
+			buckets[strings.ToLower(v[i:i+1])] = bucket + "-" + v
+		}
+	}
+	return buckets
 }

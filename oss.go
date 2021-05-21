@@ -17,6 +17,9 @@ import (
 type OSS struct {
 	Bucket *oss.Bucket
 	Shards map[string]*oss.Bucket
+
+	// This function will be executed after presigned URL generated
+	ReplacePresignedURL PresignedURLReplacer
 }
 
 func (ossClient *OSS) getBucket(key string) (*oss.Bucket, error) {
@@ -261,7 +264,16 @@ func (ossClient *OSS) SignURL(key string, expired int64) (string, error) {
 		return "", err
 	}
 
-	return bucket.SignURL(key, oss.HTTPGet, expired)
+	presignedURLString, err := bucket.SignURL(key, oss.HTTPGet, expired)
+	if err != nil {
+		return "", err
+	}
+
+	if ossClient.ReplacePresignedURL != nil {
+		return ossClient.ReplacePresignedURL(presignedURLString), nil
+	}
+
+	return presignedURLString, nil
 }
 
 func getOSSMeta(attributes []string, headers http.Header) map[string]string {

@@ -6,10 +6,6 @@ import (
 	"strings"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 // Client interface
@@ -28,6 +24,10 @@ type Client interface {
 	CompressAndPut(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
 	Range(key string, offset int64, length int64) (io.ReadCloser, error)
 }
+
+type PresignEndpointReplacer func(endpoint string) string
+
+type PresignedURLReplacer func(urlString string) string
 
 // Options for New method
 type Options struct {
@@ -51,6 +51,24 @@ type Options struct {
 	S3ForcePathStyle bool
 	// Only for s3-like
 	SSL bool
+	// Only for s3-like, can only be either `v4` or `v2`
+	//
+	// Default: `v4`
+	SignVersion string
+
+	// Hooks
+	//
+
+	// Only for s3-like
+	// This function will be executed before presigning
+	ReplacePresignEndpoint PresignEndpointReplacer
+	// Only for s3-like/oss
+	// This function will be executed after presigned URL generated
+	ReplacePresignedURL PresignedURLReplacer
+}
+
+func (o *Options) IsS3Like() bool {
+	return o.S3ForcePathStyle
 }
 
 // New awos Client instance
@@ -92,46 +110,7 @@ func New(options *Options) (Client, error) {
 
 		return ossClient, nil
 	} else if storageType == "s3" {
-		var sess *session.Session
-
-		// use minio
-		if options.S3ForcePathStyle {
-			sess = session.Must(session.NewSession(&aws.Config{
-				Region:           aws.String(options.Region),
-				DisableSSL:       aws.Bool(!options.SSL),
-				Credentials:      credentials.NewStaticCredentials(options.AccessKeyID, options.AccessKeySecret, ""),
-				Endpoint:         aws.String(options.Endpoint),
-				S3ForcePathStyle: aws.Bool(true),
-			}))
-		} else {
-			sess = session.Must(session.NewSession(&aws.Config{
-				Region:      aws.String(options.Region),
-				DisableSSL:  aws.Bool(!options.SSL),
-				Credentials: credentials.NewStaticCredentials(options.AccessKeyID, options.AccessKeySecret, ""),
-			}))
-		}
-		service := s3.New(sess)
-
-		var s3Client *S3
-		if options.Shards != nil && len(options.Shards) > 0 {
-			buckets := make(map[string]string)
-			for _, v := range options.Shards {
-				for i := 0; i < len(v); i++ {
-					buckets[strings.ToLower(v[i:i+1])] = options.Bucket + "-" + v
-				}
-			}
-			s3Client = &S3{
-				ShardsBucket: buckets,
-				Client:       service,
-			}
-		} else {
-			s3Client = &S3{
-				BucketName: options.Bucket,
-				Client:     service,
-			}
-		}
-
-		return s3Client, nil
+		return newS3(options)
 	} else {
 		return nil, fmt.Errorf("Unknown StorageType:\"%s\", only supports oss,s3", options.StorageType)
 	}
