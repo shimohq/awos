@@ -104,11 +104,15 @@ func New(options *Options) (Client, error) {
 				S3ForcePathStyle: aws.Bool(true),
 			}))
 		} else {
-			sess = session.Must(session.NewSession(&aws.Config{
+			config := &aws.Config{
 				Region:      aws.String(options.Region),
 				DisableSSL:  aws.Bool(!options.SSL),
 				Credentials: credentials.NewStaticCredentials(options.AccessKeyID, options.AccessKeySecret, ""),
-			}))
+			}
+			if options.Endpoint != "" {
+				config.Endpoint = aws.String(options.Endpoint)
+			}
+			sess = session.Must(session.NewSession(config))
 		}
 		service := s3.New(sess)
 
