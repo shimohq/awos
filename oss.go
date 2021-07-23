@@ -14,6 +14,8 @@ import (
 	"github.com/golang/snappy"
 )
 
+var _ Client = (*OSS)(nil)
+
 type OSS struct {
 	Bucket *oss.Bucket
 	Shards map[string]*oss.Bucket
@@ -262,6 +264,14 @@ func (ossClient *OSS) SignURL(key string, expired int64) (string, error) {
 	}
 
 	return bucket.SignURL(key, oss.HTTPGet, expired)
+}
+
+func (ossClient *OSS) Exists(key string) (bool, error) {
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return false, err
+	}
+	return bucket.IsObjectExist(key)
 }
 
 func getOSSMeta(attributes []string, headers http.Header) map[string]string {

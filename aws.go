@@ -16,6 +16,8 @@ import (
 	"github.com/golang/snappy"
 )
 
+var _ Client = (*S3)(nil)
+
 type S3 struct {
 	ShardsBucket map[string]string
 	BucketName   string
@@ -346,6 +348,29 @@ func (a *S3) SignURL(key string, expired int64) (string, error) {
 
 	req, _ := a.Client.GetObjectRequest(input)
 	return req.Presign(time.Duration(expired) * time.Second)
+}
+
+func (a *S3) Exists(key string) (bool, error) {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return false, err
+	}
+
+	input := &s3.HeadObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
+	}
+	_, err = a.Client.HeadObject(input)
+	if err == nil {
+		return true, nil
+	}
+
+	if aerr, ok := err.(awserr.RequestFailure); ok {
+		if aerr.StatusCode() == 404 {
+			return false, nil
+		}
+	}
+	return false, err
 }
 
 func (a *S3) get(key string, options ...GetOptions) (*s3.GetObjectOutput, error) {
