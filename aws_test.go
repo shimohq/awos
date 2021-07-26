@@ -281,3 +281,40 @@ func TestS3_Range(t *testing.T) {
 		t.Fatalf("aws range as reader, expect:%s, but is %s", "456", string(byteRes))
 	}
 }
+
+func TestS3_Exists(t *testing.T) {
+	meta := make(map[string]string)
+	err := awsClient.Put(guid, strings.NewReader("123456"), meta)
+	if err != nil {
+		t.Log("aws put error", err)
+		t.Fail()
+	}
+
+	// test exists
+	ok, err := awsClient.Exists(guid)
+	if err != nil {
+		t.Log("aws Exists error", err)
+		t.Fail()
+	}
+	if !ok {
+		t.Log("aws must Exists, but return not exists")
+		t.Fail()
+	}
+
+	err = awsClient.Del(guid)
+	if err != nil {
+		t.Log("aws del key fail, err:", err)
+		t.Fail()
+	}
+
+	// test not exists
+	ok, err = awsClient.Exists(guid)
+	if err != nil {
+		t.Log("aws Exists error", err)
+		t.Fail()
+	}
+	if ok {
+		t.Log("aws must not Exists, but return exists")
+		t.Fail()
+	}
+}

@@ -263,3 +263,40 @@ func TestOSS_Range(t *testing.T) {
 		t.Fatalf("oss range as reader, expect:%s, but is %s", "456", string(byteRes))
 	}
 }
+
+func TestOSS_Exists(t *testing.T) {
+	meta := make(map[string]string)
+	err := ossClient.Put(guid, strings.NewReader("123456"), meta)
+	if err != nil {
+		t.Log("oss put error", err)
+		t.Fail()
+	}
+
+	// test exists
+	ok, err := ossClient.Exists(guid)
+	if err != nil {
+		t.Log("oss Exists error", err)
+		t.Fail()
+	}
+	if !ok {
+		t.Log("oss must Exists, but return not exists")
+		t.Fail()
+	}
+
+	err = ossClient.Del(guid)
+	if err != nil {
+		t.Log("oss del key fail, err:", err)
+		t.Fail()
+	}
+
+	// test not exists
+	ok, err = ossClient.Exists(guid)
+	if err != nil {
+		t.Log("oss Exists error", err)
+		t.Fail()
+	}
+	if ok {
+		t.Log("oss must not Exists, but return exists")
+		t.Fail()
+	}
+}
