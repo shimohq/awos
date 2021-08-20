@@ -180,6 +180,12 @@ func (ossClient *OSS) Put(key string, reader io.ReadSeeker, meta map[string]stri
 	if putOptions.contentDisposition != nil {
 		ossOptions = append(ossOptions, oss.ContentDisposition(*putOptions.contentDisposition))
 	}
+	if putOptions.cacheControl != nil {
+		ossOptions = append(ossOptions, oss.CacheControl(*putOptions.cacheControl))
+	}
+	if putOptions.expires != nil {
+		ossOptions = append(ossOptions, oss.Expires(*putOptions.expires))
+	}
 
 	return retry.Do(func() error {
 		err := bucket.PutObject(key, reader, ossOptions...)

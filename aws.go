@@ -210,6 +210,12 @@ func (a *S3) Put(key string, reader io.ReadSeeker, meta map[string]string, optio
 	if putOptions.contentDisposition != nil {
 		input.ContentDisposition = putOptions.contentDisposition
 	}
+	if putOptions.cacheControl != nil {
+		input.CacheControl = putOptions.cacheControl
+	}
+	if putOptions.expires != nil {
+		input.Expires = putOptions.expires
+	}
 
 	err = retry.Do(func() error {
 		_, err := a.Client.PutObject(input)
