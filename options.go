@@ -1,8 +1,8 @@
 package awos
 
 type putOptions struct {
-	contentType     string
-	contentEncoding *string
+	contentType        string
+	contentEncoding    *string
 	contentDisposition *string
 }
 
@@ -33,8 +33,9 @@ func DefaultPutOptions() *putOptions {
 }
 
 type getOptions struct {
-	contentType     *string
-	contentEncoding *string
+	contentType         *string
+	contentEncoding     *string
+	enableCRCValidation bool
 }
 
 func DefaultGetOptions() *getOptions {
@@ -52,5 +53,11 @@ func GetWithContentType(contentType string) GetOptions {
 func GetWithContentEncoding(contentEncoding string) GetOptions {
 	return func(options *getOptions) {
 		options.contentEncoding = &contentEncoding
+	}
+}
+
+func EnableCRCValidation() GetOptions {
+	return func(options *getOptions) {
+		options.enableCRCValidation = true
 	}
 }
