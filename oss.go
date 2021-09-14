@@ -78,16 +78,24 @@ func (ossClient *OSS) GetWithMeta(key string, attributes []string, options ...Ge
 }
 
 func (ossClient *OSS) Get(key string, options ...GetOptions) (string, error) {
+	data, err := ossClient.GetBytes(key, options...)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func (ossClient *OSS) GetBytes(key string, options ...GetOptions) ([]byte, error) {
 	getOpts := DefaultGetOptions()
 	for _, opt := range options {
 		opt(getOpts)
 	}
 	result, err := ossClient.get(key, getOpts)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if result == nil {
-		return "", nil
+		return nil, nil
 	}
 
 	body := result.Response
@@ -99,14 +107,14 @@ func (ossClient *OSS) Get(key string, options ...GetOptions) (string, error) {
 
 	data, err := ioutil.ReadAll(body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if getOpts.enableCRCValidation && result.ServerCRC > 0 && result.ClientCRC.Sum64() != result.ServerCRC {
-		return "", fmt.Errorf("crc64 check failed, reqId:%s, serverCRC:%d, clientCRC:%d", extractOSSRequestID(result.Response),
+		return nil, fmt.Errorf("crc64 check failed, reqId:%s, serverCRC:%d, clientCRC:%d", extractOSSRequestID(result.Response),
 			result.ServerCRC, result.ClientCRC.Sum64())
 	}
-	return string(data), nil
+	return data, err
 }
 
 func (ossClient *OSS) Range(key string, offset int64, length int64) (io.ReadCloser, error) {

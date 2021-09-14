@@ -15,6 +15,7 @@ import (
 // Client interface
 type Client interface {
 	Get(key string, options ...GetOptions) (string, error)
+	GetBytes(key string, options ...GetOptions) ([]byte, error)
 	GetAsReader(key string, options ...GetOptions) (io.ReadCloser, error)
 	GetWithMeta(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error)
 	Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
@@ -27,7 +28,7 @@ type Client interface {
 	GetAndDecompressAsReader(key string) (io.ReadCloser, error)
 	CompressAndPut(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
 	Range(key string, offset int64, length int64) (io.ReadCloser, error)
-	Exists(key string)(bool, error)
+	Exists(key string) (bool, error)
 }
 
 // Options for New method
