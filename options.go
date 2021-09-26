@@ -1,9 +1,13 @@
 package awos
 
+import "time"
+
 type putOptions struct {
 	contentType        string
 	contentEncoding    *string
 	contentDisposition *string
+	cacheControl       *string
+	expires             *time.Time
 }
 
 type PutOptions func(options *putOptions)
@@ -23,6 +27,18 @@ func PutWithContentEncoding(contentEncoding string) PutOptions {
 func PutWithContentDisposition(contentDisposition string) PutOptions {
 	return func(options *putOptions) {
 		options.contentDisposition = &contentDisposition
+	}
+}
+
+func PutWithCacheControl(cacheControl string) PutOptions {
+	return func(options *putOptions) {
+		options.cacheControl = &cacheControl
+	}
+}
+
+func PutWithExpireTime(expires time.Time) PutOptions {
+	return func(options *putOptions) {
+		options.expires = &expires
 	}
 }
 
