@@ -146,6 +146,18 @@ func TestOSS_Get(t *testing.T) {
 	if string(byteRes) != content {
 		t.Fatal("oss get as reader, readAll error")
 	}
+
+	resBytes, err := ossClient.GetBytes(guid, EnableCRCValidation())
+	if err != nil || string(resBytes) != content {
+		t.Log("oss get content fail, res:", string(resBytes), "err:", err)
+		t.Fail()
+	}
+
+	res, err = ossClient.Get(guid, EnableCRCValidation())
+	if err != nil || res != content {
+		t.Log("oss get content fail, res:", res, "err:", err)
+		t.Fail()
+	}
 }
 
 func TestOSS_GetWithMeta(t *testing.T) {

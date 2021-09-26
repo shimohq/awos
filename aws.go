@@ -90,12 +90,20 @@ func (a *S3) GetWithMeta(key string, attributes []string, options ...GetOptions)
 }
 
 func (a *S3) Get(key string, options ...GetOptions) (string, error) {
-	result, err := a.get(key, options...)
+	data, err := a.GetBytes(key, options...)
 	if err != nil {
 		return "", err
 	}
+	return string(data), nil
+}
+
+func (a *S3) GetBytes(key string, options ...GetOptions) ([]byte, error) {
+	result, err := a.get(key, options...)
+	if err != nil {
+		return nil, err
+	}
 	if result == nil {
-		return "", nil
+		return nil, nil
 	}
 
 	body := result.Body
@@ -105,11 +113,7 @@ func (a *S3) Get(key string, options ...GetOptions) (string, error) {
 		}
 	}()
 
-	data, err := ioutil.ReadAll(body)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
+	return ioutil.ReadAll(body)
 }
 
 func (a *S3) Range(key string, offset int64, length int64) (io.ReadCloser, error) {

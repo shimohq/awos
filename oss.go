@@ -3,6 +3,7 @@ package awos
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -42,7 +43,11 @@ func (ossClient *OSS) GetAsReader(key string, options ...GetOptions) (io.ReadClo
 		return nil, err
 	}
 
-	readCloser, err := bucket.GetObject(key, getOSSOptions(options)...)
+	getOpts := DefaultGetOptions()
+	for _, opt := range options {
+		opt(getOpts)
+	}
+	readCloser, err := bucket.GetObject(key, getOSSOptions(getOpts)...)
 	if err != nil {
 		if oerr, ok := err.(oss.ServiceError); ok {
 			if oerr.StatusCode == 404 {
@@ -57,7 +62,11 @@ func (ossClient *OSS) GetAsReader(key string, options ...GetOptions) (io.ReadClo
 
 // don't forget to call the close() method of the io.ReadCloser
 func (ossClient *OSS) GetWithMeta(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error) {
-	result, err := ossClient.get(key, options...)
+	getOpts := DefaultGetOptions()
+	for _, opt := range options {
+		opt(getOpts)
+	}
+	result, err := ossClient.get(key, getOpts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -69,12 +78,24 @@ func (ossClient *OSS) GetWithMeta(key string, attributes []string, options ...Ge
 }
 
 func (ossClient *OSS) Get(key string, options ...GetOptions) (string, error) {
-	result, err := ossClient.get(key, options...)
+	data, err := ossClient.GetBytes(key, options...)
 	if err != nil {
 		return "", err
 	}
+	return string(data), nil
+}
+
+func (ossClient *OSS) GetBytes(key string, options ...GetOptions) ([]byte, error) {
+	getOpts := DefaultGetOptions()
+	for _, opt := range options {
+		opt(getOpts)
+	}
+	result, err := ossClient.get(key, getOpts)
+	if err != nil {
+		return nil, err
+	}
 	if result == nil {
-		return "", nil
+		return nil, nil
 	}
 
 	body := result.Response
@@ -86,10 +107,14 @@ func (ossClient *OSS) Get(key string, options ...GetOptions) (string, error) {
 
 	data, err := ioutil.ReadAll(body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(data), nil
+	if getOpts.enableCRCValidation && result.ServerCRC > 0 && result.ClientCRC.Sum64() != result.ServerCRC {
+		return nil, fmt.Errorf("crc64 check failed, reqId:%s, serverCRC:%d, clientCRC:%d", extractOSSRequestID(result.Response),
+			result.ServerCRC, result.ClientCRC.Sum64())
+	}
+	return data, err
 }
 
 func (ossClient *OSS) Range(key string, offset int64, length int64) (io.ReadCloser, error) {
@@ -97,7 +122,7 @@ func (ossClient *OSS) Range(key string, offset int64, length int64) (io.ReadClos
 }
 
 func (ossClient *OSS) GetAndDecompress(key string) (string, error) {
-	result, err := ossClient.get(key)
+	result, err := ossClient.get(key, DefaultGetOptions())
 	if err != nil {
 		return "", err
 	}
@@ -291,12 +316,8 @@ func getOSSMeta(attributes []string, headers http.Header) map[string]string {
 	return meta
 }
 
-func getOSSOptions(options []GetOptions) []oss.Option {
-	getOpts := DefaultGetOptions()
+func getOSSOptions(getOpts *getOptions) []oss.Option {
 	ossOpts := make([]oss.Option, 0)
-	for _, opt := range options {
-		opt(getOpts)
-	}
 	if getOpts.contentEncoding != nil {
 		ossOpts = append(ossOpts, oss.ContentEncoding(*getOpts.contentEncoding))
 	}
@@ -307,7 +328,7 @@ func getOSSOptions(options []GetOptions) []oss.Option {
 	return ossOpts
 }
 
-func (ossClient *OSS) get(key string, options ...GetOptions) (*oss.GetObjectResult, error) {
+func (ossClient *OSS) get(key string, options *getOptions) (*oss.GetObjectResult, error) {
 	bucket, err := ossClient.getBucket(key)
 	if err != nil {
 		return nil, err
@@ -325,4 +346,11 @@ func (ossClient *OSS) get(key string, options ...GetOptions) (*oss.GetObjectResu
 	}
 
 	return result, nil
+}
+
+func extractOSSRequestID(resp *oss.Response) string {
+	if resp == nil {
+		return ""
+	}
+	return resp.Headers.Get(oss.HTTPHeaderOssRequestID)
 }
