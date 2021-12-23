@@ -60,7 +60,7 @@ type Options struct {
 }
 
 const (
-	DefaultHttpTimeout = int64(10)
+	DefaultHttpTimeout = int64(60)
 )
 
 // New awos Client instance
