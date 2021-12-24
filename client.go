@@ -56,7 +56,7 @@ type Options struct {
 	SSL bool
 	// Only for s3-like, set http client timeout.
 	// oss has default timeout, but s3 default timeout is 0 means no timeout.
-	S3HttpTimeout int64
+	S3HttpTimeoutSecs int64
 }
 
 const (
@@ -125,8 +125,8 @@ func New(options *Options) (Client, error) {
 		}
 
 		httpTimeout := DefaultHttpTimeout
-		if options.S3HttpTimeout > 0 {
-			httpTimeout = options.S3HttpTimeout
+		if options.S3HttpTimeoutSecs > 0 {
+			httpTimeout = options.S3HttpTimeoutSecs
 		}
 		config.HTTPClient = &http.Client{
 			Timeout: time.Second * time.Duration(httpTimeout),
