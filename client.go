@@ -2,14 +2,15 @@ package awos
 
 import (
 	"fmt"
-	"io"
-	"strings"
-
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"io"
+	"net/http"
+	"strings"
+	"time"
 )
 
 // Client interface
@@ -53,7 +54,14 @@ type Options struct {
 	S3ForcePathStyle bool
 	// Only for s3-like
 	SSL bool
+	// Only for s3-like, set http client timeout.
+	// oss has default timeout, but s3 default timeout is 0 means no timeout.
+	S3HttpTimeoutSecs int64
 }
+
+const (
+	DefaultHttpTimeout = int64(60)
+)
 
 // New awos Client instance
 func New(options *Options) (Client, error) {
@@ -94,19 +102,19 @@ func New(options *Options) (Client, error) {
 
 		return ossClient, nil
 	} else if storageType == "s3" {
-		var sess *session.Session
+		var config *aws.Config
 
 		// use minio
 		if options.S3ForcePathStyle {
-			sess = session.Must(session.NewSession(&aws.Config{
+			config = &aws.Config{
 				Region:           aws.String(options.Region),
 				DisableSSL:       aws.Bool(!options.SSL),
 				Credentials:      credentials.NewStaticCredentials(options.AccessKeyID, options.AccessKeySecret, ""),
 				Endpoint:         aws.String(options.Endpoint),
 				S3ForcePathStyle: aws.Bool(true),
-			}))
+			}
 		} else {
-			config := &aws.Config{
+			config = &aws.Config{
 				Region:      aws.String(options.Region),
 				DisableSSL:  aws.Bool(!options.SSL),
 				Credentials: credentials.NewStaticCredentials(options.AccessKeyID, options.AccessKeySecret, ""),
@@ -114,9 +122,16 @@ func New(options *Options) (Client, error) {
 			if options.Endpoint != "" {
 				config.Endpoint = aws.String(options.Endpoint)
 			}
-			sess = session.Must(session.NewSession(config))
 		}
-		service := s3.New(sess)
+
+		httpTimeout := DefaultHttpTimeout
+		if options.S3HttpTimeoutSecs > 0 {
+			httpTimeout = options.S3HttpTimeoutSecs
+		}
+		config.HTTPClient = &http.Client{
+			Timeout: time.Second * time.Duration(httpTimeout),
+		}
+		service := s3.New(session.Must(session.NewSession(config)))
 
 		var s3Client *S3
 		if options.Shards != nil && len(options.Shards) > 0 {
