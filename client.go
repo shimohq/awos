@@ -67,7 +67,7 @@ const (
 func New(options *Options) (Client, error) {
 	storageType := strings.ToLower(options.StorageType)
 
-	if storageType == "oss" {
+	if storageType == StorageTypeOSS {
 		client, err := oss.New(options.Endpoint, options.AccessKeyID, options.AccessKeySecret)
 		if err != nil {
 			return nil, err
@@ -101,7 +101,7 @@ func New(options *Options) (Client, error) {
 		}
 
 		return ossClient, nil
-	} else if storageType == "s3" {
+	} else if storageType == StorageTypeS3 {
 		var config *aws.Config
 
 		// use minio
