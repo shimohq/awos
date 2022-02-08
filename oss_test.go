@@ -6,6 +6,8 @@ Put your environment configuration in ".env-oss"
 
 import (
 	"bytes"
+	"github.com/golang/snappy"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -181,6 +183,25 @@ func TestOSS_GetWithMeta(t *testing.T) {
 }
 
 func TestOSS_GetAndDecompress(t *testing.T) {
+	reader, meta, err := ossClient.GetWithMeta(compressGUID, []string{MetaCompressor})
+	if err != nil {
+		t.Log("oss get error", err)
+		t.Fail()
+	}
+	assert.Equal(t, "snappy", meta[MetaCompressor])
+
+	rawBytes, err := ioutil.ReadAll(reader)
+	if err != nil {
+		t.Log("oss read body error", err)
+		t.Fail()
+	}
+
+	decodedBytes, err := snappy.Decode(nil, rawBytes)
+	if err != nil || string(decodedBytes) != compressContent {
+		t.Log("snappy decode error", err)
+		t.Fail()
+	}
+
 	res, err := ossClient.GetAndDecompress(compressGUID)
 	if err != nil || res != compressContent {
 		t.Log("aws get oss content fail, res:", res, "err:", err)
@@ -199,6 +220,13 @@ func TestOSS_GetAndDecompress(t *testing.T) {
 }
 
 func TestOSS_GetAndDecompress2(t *testing.T) {
+	_, meta, err := ossClient.GetWithMeta(guid, []string{MetaCompressor})
+	if err != nil {
+		t.Log("oss get error", err)
+		t.Fail()
+	}
+	assert.Empty(t, meta[MetaCompressor])
+
 	res, err := ossClient.GetAndDecompress(guid)
 	if err != nil || res != content {
 		t.Log("aws get oss content fail, res:", res, "err:", err)
