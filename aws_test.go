@@ -91,7 +91,7 @@ func TestS3_CompressAndPut(t *testing.T) {
 
 func TestS3_Head(t *testing.T) {
 	attributes := make([]string, 0)
-	attributes = append(attributes, "head")
+	attributes = append(attributes, "head", "Content-Length")
 	var res map[string]string
 	var err error
 	var head int
@@ -118,7 +118,8 @@ func TestS3_Head(t *testing.T) {
 
 	head, err = strconv.Atoi(res["head"])
 	length, err = strconv.Atoi(res["length"])
-	if err != nil || head != S3ExpectHead || length != S3ExpectLength {
+	contentLength, err := strconv.Atoi(res["Content-Length"])
+	if err != nil || head != S3ExpectHead || length != S3ExpectLength || contentLength != S3ExpectLength {
 		t.Log("aws get head fail, res:", res, "err:", err)
 		t.Fail()
 	}
