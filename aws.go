@@ -86,7 +86,9 @@ func (a *S3) GetWithMeta(key string, attributes []string, options ...GetOptions)
 		}
 		return nil, nil, err
 	}
-	return result.Body, getS3Meta(attributes, result.Metadata), err
+	return result.Body, getS3Meta(attributes, mergeHttpStandardHeaders(&HeadGetObjectOutputWrapper{
+		getObjectOutput: result,
+	})), err
 }
 
 func (a *S3) Get(key string, options ...GetOptions) (string, error) {
@@ -307,7 +309,9 @@ func (a *S3) Head(key string, attributes []string) (map[string]string, error) {
 		}
 		return nil, err
 	}
-	return getS3Meta(attributes, result.Metadata), nil
+	return getS3Meta(attributes, mergeHttpStandardHeaders(&HeadGetObjectOutputWrapper{
+		headObjectOutput: result,
+	})), nil
 }
 
 func (a *S3) ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error) {
