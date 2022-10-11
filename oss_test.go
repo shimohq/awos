@@ -268,6 +268,27 @@ func TestOSS_Del(t *testing.T) {
 	}
 }
 
+func TestOSS_DelMulti(t *testing.T) {
+	keys := []string{"aaa", "bb0", "ccc"}
+	for _, key := range keys {
+		ossClient.Put(key, strings.NewReader("2333333"), nil)
+	}
+
+	err := ossClient.DelMulti(keys)
+	if err != nil {
+		t.Log("aws del multi keys fail, err:", err)
+		t.Fail()
+	}
+
+	for _, key := range keys {
+		res, err := ossClient.Get(key)
+		if res != "" || err != nil {
+			t.Logf("key:%s should not be exist", key)
+			t.Fail()
+		}
+	}
+}
+
 func TestOSS_GetNotExist(t *testing.T) {
 	res1, err := ossClient.Get(guid + "123")
 	if res1 != "" || err != nil {
