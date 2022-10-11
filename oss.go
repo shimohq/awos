@@ -249,9 +249,23 @@ func (ossClient *OSS) Del(key string) error {
 }
 
 func (ossClient *OSS) DelMulti(keys []string) error {
-	_, err := ossClient.Bucket.DeleteObjects(keys)
+	bucketsKeys := make(map[*oss.Bucket][]string)
+	for _, key := range keys {
+		bucket, err := ossClient.getBucket(key)
+		if err != nil {
+			return err
+		}
+		bucketsKeys[bucket] = append(bucketsKeys[bucket], key)
+	}
 
-	return err
+	for bucket, bKeys := range bucketsKeys {
+		_, err := bucket.DeleteObjects(bKeys)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (ossClient *OSS) Head(key string, attributes []string) (map[string]string, error) {

@@ -268,24 +268,39 @@ func (a *S3) Del(key string) error {
 }
 
 func (a *S3) DelMulti(keys []string) error {
-	delObjects := make([]*s3.ObjectIdentifier, len(keys))
+	bucketsNameKeys := make(map[string][]string)
+	for _, key := range keys {
+		bucketName, err := a.getBucket(key)
+		if err != nil {
+			return err
+		}
+		bucketsNameKeys[bucketName] = append(bucketsNameKeys[bucketName], key)
+	}
 
-	for idx, key := range keys {
-		delObjects[idx] = &s3.ObjectIdentifier{
-			Key: aws.String(key),
+	for bucketName, BKeys := range bucketsNameKeys {
+		delObjects := make([]*s3.ObjectIdentifier, len(BKeys))
+
+		for idx, key := range BKeys {
+			delObjects[idx] = &s3.ObjectIdentifier{
+				Key: aws.String(key),
+			}
+		}
+
+		input := &s3.DeleteObjectsInput{
+			Bucket: aws.String(bucketName),
+			Delete: &s3.Delete{
+				Objects: delObjects,
+				Quiet:   aws.Bool(false),
+			},
+		}
+
+		_, err := a.Client.DeleteObjects(input)
+		if err != nil {
+			return err
 		}
 	}
 
-	input := &s3.DeleteObjectsInput{
-		Bucket: aws.String(a.BucketName),
-		Delete: &s3.Delete{
-			Objects: delObjects,
-			Quiet:   aws.Bool(false),
-		},
-	}
-
-	_, err := a.Client.DeleteObjects(input)
-	return err
+	return nil
 }
 
 func (a *S3) Head(key string, attributes []string) (map[string]string, error) {
