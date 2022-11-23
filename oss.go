@@ -2,6 +2,7 @@ package awos
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +21,11 @@ var _ Client = (*OSS)(nil)
 type OSS struct {
 	Bucket *oss.Bucket
 	Shards map[string]*oss.Bucket
+}
+
+func (ossClient *OSS) WithContext(context.Context) Client {
+	// oss 暂时不好支持context，先忽略
+	return ossClient
 }
 
 func (ossClient *OSS) getBucket(key string) (*oss.Bucket, error) {

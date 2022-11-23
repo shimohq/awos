@@ -2,6 +2,7 @@ package awos
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -22,9 +23,23 @@ type S3 struct {
 	ShardsBucket map[string]string
 	BucketName   string
 	Client       *s3.S3
+	ctx          context.Context
+}
+
+func (a *S3) WithContext(ctx context.Context) Client {
+	b := &S3{
+		ShardsBucket: a.ShardsBucket,
+		BucketName:   a.BucketName,
+		Client:       a.Client,
+		ctx:          ctx,
+	}
+	return b
 }
 
 func (a *S3) getBucket(key string) (string, error) {
+	if a.ctx == nil {
+		a.ctx = context.Background()
+	}
 	if a.ShardsBucket != nil && len(a.ShardsBucket) > 0 {
 		keyLength := len(key)
 		bucketName := a.ShardsBucket[strings.ToLower(key[keyLength-1:keyLength])]
@@ -51,7 +66,7 @@ func (a *S3) GetAsReader(key string, options ...GetOptions) (io.ReadCloser, erro
 	}
 	setS3Options(options, input)
 
-	result, err := a.Client.GetObject(input)
+	result, err := a.Client.GetObjectWithContext(a.ctx, input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			if aerr.Code() == s3.ErrCodeNoSuchKey {
@@ -77,7 +92,7 @@ func (a *S3) GetWithMeta(key string, attributes []string, options ...GetOptions)
 	}
 	setS3Options(options, input)
 
-	result, err := a.Client.GetObject(input)
+	result, err := a.Client.GetObjectWithContext(a.ctx, input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			if aerr.Code() == s3.ErrCodeNoSuchKey {
@@ -125,7 +140,7 @@ func (a *S3) Range(key string, offset int64, length int64) (io.ReadCloser, error
 		Key:    aws.String(key),
 		Range:  &readRange,
 	}
-	r, err := a.Client.GetObject(input)
+	r, err := a.Client.GetObjectWithContext(a.ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +239,7 @@ func (a *S3) Put(key string, reader io.ReadSeeker, meta map[string]string, optio
 	}
 
 	err = retry.Do(func() error {
-		_, err := a.Client.PutObject(input)
+		_, err := a.Client.PutObjectWithContext(a.ctx, input)
 		if err != nil && reader != nil {
 			// Reset the body reader after the request since at this point it's already read
 			// Note that it's safe to ignore the error here since the 0,0 position is always valid
@@ -263,7 +278,7 @@ func (a *S3) Del(key string) error {
 		Key:    aws.String(key),
 	}
 
-	_, err = a.Client.DeleteObject(input)
+	_, err = a.Client.DeleteObjectWithContext(a.ctx, input)
 	return err
 }
 
@@ -294,7 +309,7 @@ func (a *S3) DelMulti(keys []string) error {
 			},
 		}
 
-		_, err := a.Client.DeleteObjects(input)
+		_, err := a.Client.DeleteObjectsWithContext(a.ctx, input)
 		if err != nil {
 			return err
 		}
@@ -314,7 +329,7 @@ func (a *S3) Head(key string, attributes []string) (map[string]string, error) {
 		Key:    aws.String(key),
 	}
 
-	result, err := a.Client.HeadObject(input)
+	result, err := a.Client.HeadObjectWithContext(a.ctx, input)
 
 	if err != nil {
 		if aerr, ok := err.(awserr.RequestFailure); ok {
@@ -351,7 +366,7 @@ func (a *S3) ListObject(key string, prefix string, marker string, maxKeys int, d
 		input.Delimiter = aws.String(delimiter)
 	}
 
-	result, err := a.Client.ListObjects(input)
+	result, err := a.Client.ListObjectsWithContext(a.ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +404,7 @@ func (a *S3) Exists(key string) (bool, error) {
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
 	}
-	_, err = a.Client.HeadObject(input)
+	_, err = a.Client.HeadObjectWithContext(a.ctx, input)
 	if err == nil {
 		return true, nil
 	}
@@ -414,7 +429,7 @@ func (a *S3) get(key string, options ...GetOptions) (*s3.GetObjectOutput, error)
 	}
 	setS3Options(options, input)
 
-	result, err := a.Client.GetObject(input)
+	result, err := a.Client.GetObjectWithContext(a.ctx, input)
 
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {

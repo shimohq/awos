@@ -1,20 +1,24 @@
 package awos
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"io"
-	"net/http"
-	"strings"
-	"time"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // Client interface
 type Client interface {
+	WithContext(ctx context.Context) Client
 	Get(key string, options ...GetOptions) (string, error)
 	GetBytes(key string, options ...GetOptions) ([]byte, error)
 	GetAsReader(key string, options ...GetOptions) (io.ReadCloser, error)
@@ -129,7 +133,8 @@ func New(options *Options) (Client, error) {
 			httpTimeout = options.S3HttpTimeoutSecs
 		}
 		config.HTTPClient = &http.Client{
-			Timeout: time.Second * time.Duration(httpTimeout),
+			Timeout:   time.Second * time.Duration(httpTimeout),
+			Transport: otelhttp.NewTransport(http.DefaultTransport),
 		}
 		service := s3.New(session.Must(session.NewSession(config)))
 
