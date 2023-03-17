@@ -364,23 +364,24 @@ func (a *S3) ListObject(key string, prefix string, marker string, maxKeys int, d
 	return keys, nil
 }
 
-func (a *S3) SignURL(key string, expired int64) (string, error) {
+func (a *S3) SignURL(key string, expired int64, options ...SignOptions) (string, error) {
 	bucketName, err := a.getBucket(key)
 	if err != nil {
 		return "", err
 	}
-
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
 	}
-
+	signOptions := DefaultSignOptions()
+	for _, opt := range options {
+		opt(signOptions)
+	}
+	if signOptions.process != nil {
+		panic("process option is not supported for s3")
+	}
 	req, _ := a.Client.GetObjectRequest(input)
 	return req.Presign(time.Duration(expired) * time.Second)
-}
-
-func (a *S3) SignURLWithProcess(key string, expired int64, process string) (string, error) {
-	panic("not implemented")
 }
 
 func (a *S3) Exists(key string) (bool, error) {

@@ -302,10 +302,17 @@ func (ossClient *OSS) ListObject(key string, prefix string, marker string, maxKe
 	return keys, nil
 }
 
-func (ossClient *OSS) SignURL(key string, expired int64) (string, error) {
+func (ossClient *OSS) SignURL(key string, expired int64, options ...SignOptions) (string, error) {
 	bucket, err := ossClient.getBucket(key)
 	if err != nil {
 		return "", err
+	}
+	signOptions := DefaultSignOptions()
+	for _, opt := range options {
+		opt(signOptions)
+	}
+	if signOptions.process != nil {
+		return bucket.SignURL(key, oss.HTTPGet, expired, oss.Process(*signOptions.process))
 	}
 	return bucket.SignURL(key, oss.HTTPGet, expired)
 }
