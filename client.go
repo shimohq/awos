@@ -2,15 +2,16 @@ package awos
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"io"
-	"net/http"
-	"strings"
-	"time"
 )
 
 // Client interface
@@ -25,6 +26,7 @@ type Client interface {
 	Head(key string, meta []string) (map[string]string, error)
 	ListObject(key string, prefix string, marker string, maxKeys int, delimiter string) ([]string, error)
 	SignURL(key string, expired int64) (string, error)
+	SignURLWithProcess(key string, expired int64, process string) (string, error)
 	GetAndDecompress(key string) (string, error)
 	GetAndDecompressAsReader(key string) (io.ReadCloser, error)
 	CompressAndPut(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error

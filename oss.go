@@ -307,8 +307,15 @@ func (ossClient *OSS) SignURL(key string, expired int64) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	return bucket.SignURL(key, oss.HTTPGet, expired)
+}
+
+func (ossClient *OSS) SignURLWithProcess(key string, expired int64, process string) (string, error) {
+	bucket, err := ossClient.getBucket(key)
+	if err != nil {
+		return "", err
+	}
+	return bucket.SignURL(key, oss.HTTPGet, expired, oss.Process(process))
 }
 
 func (ossClient *OSS) Exists(key string) (bool, error) {
