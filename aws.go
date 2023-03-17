@@ -381,7 +381,6 @@ func (a *S3) SignURL(key string, expired int64) (string, error) {
 
 func (a *S3) SignURLWithProcess(key string, expired int64, process string) (string, error) {
 	panic("not implemented")
-	return "", nil
 }
 
 func (a *S3) Exists(key string) (bool, error) {
