@@ -380,19 +380,8 @@ func (a *S3) SignURL(key string, expired int64) (string, error) {
 }
 
 func (a *S3) SignURLWithProcess(key string, expired int64, process string) (string, error) {
-	// TODO 暂时不使用 process
-	bucketName, err := a.getBucket(key)
-	if err != nil {
-		return "", err
-	}
-
-	input := &s3.GetObjectInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(key),
-	}
-
-	req, _ := a.Client.GetObjectRequest(input)
-	return req.Presign(time.Duration(expired) * time.Second)
+	panic("not implemented")
+	return "", nil
 }
 
 func (a *S3) Exists(key string) (bool, error) {
