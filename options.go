@@ -7,7 +7,7 @@ type putOptions struct {
 	contentEncoding    *string
 	contentDisposition *string
 	cacheControl       *string
-	expires             *time.Time
+	expires            *time.Time
 }
 
 type PutOptions func(options *putOptions)
@@ -76,4 +76,20 @@ func EnableCRCValidation() GetOptions {
 	return func(options *getOptions) {
 		options.enableCRCValidation = true
 	}
+}
+
+type SignOptions func(options *signOptions)
+
+func SignWithProcess(process string) SignOptions {
+	return func(options *signOptions) {
+		options.process = &process
+	}
+}
+
+type signOptions struct {
+	process *string
+}
+
+func DefaultSignOptions() *signOptions {
+	return &signOptions{}
 }
