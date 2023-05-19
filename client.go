@@ -57,7 +57,9 @@ type Options struct {
 	SSL bool
 	// Only for s3-like, set http client timeout.
 	// oss has default timeout, but s3 default timeout is 0 means no timeout.
-	S3HttpTimeoutSecs int64
+	S3HttpTimeoutSecs              int64
+	S3HttpTransportMaxConnsPerHost int
+	S3HttpTransportIdleConnTimeout time.Duration
 }
 
 const (
@@ -129,9 +131,22 @@ func New(options *Options) (Client, error) {
 		if options.S3HttpTimeoutSecs > 0 {
 			httpTimeout = options.S3HttpTimeoutSecs
 		}
-		config.HTTPClient = &http.Client{
+		httpClient := &http.Client{
 			Timeout: time.Second * time.Duration(httpTimeout),
 		}
+		if options.S3HttpTransportMaxConnsPerHost > 0 {
+			transport := &http.Transport{
+				MaxIdleConns:      options.S3HttpTransportMaxConnsPerHost,
+				IdleConnTimeout:   30 * time.Second,
+				MaxConnsPerHost:   options.S3HttpTransportMaxConnsPerHost,
+				ForceAttemptHTTP2: true,
+			}
+			if options.S3HttpTransportIdleConnTimeout != 0 {
+				transport.IdleConnTimeout = options.S3HttpTransportIdleConnTimeout
+			}
+			httpClient.Transport = transport
+		}
+		config.HTTPClient = httpClient
 		service := s3.New(session.Must(session.NewSession(config)))
 
 		var s3Client *S3
