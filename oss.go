@@ -18,8 +18,9 @@ import (
 var _ Client = (*OSS)(nil)
 
 type OSS struct {
-	Bucket *oss.Bucket
-	Shards map[string]*oss.Bucket
+	Bucket     *oss.Bucket
+	Shards     map[string]*oss.Bucket
+	compressor Compressor
 }
 
 func (ossClient *OSS) getBucket(key string) (*oss.Bucket, error) {
@@ -211,7 +212,10 @@ func (ossClient *OSS) Put(key string, reader io.ReadSeeker, meta map[string]stri
 	if putOptions.expires != nil {
 		ossOptions = append(ossOptions, oss.Expires(*putOptions.expires))
 	}
-
+	if ossClient.compressor != nil {
+		reader, err = ossClient.compressor.Compress(reader)
+		ossOptions = append(ossOptions, oss.ContentEncoding(ossClient.compressor.ContentEncoding()))
+	}
 	return retry.Do(func() error {
 		err := bucket.PutObject(key, reader, ossOptions...)
 		if err != nil && reader != nil {

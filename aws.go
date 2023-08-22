@@ -22,6 +22,7 @@ type S3 struct {
 	ShardsBucket map[string]string
 	BucketName   string
 	Client       *s3.S3
+	compressor   Compressor
 }
 
 func (a *S3) getBucket(key string) (string, error) {
