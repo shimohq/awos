@@ -3,6 +3,7 @@ package awos
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"sync"
 )
@@ -39,6 +40,7 @@ func (g *GzipCompressor) Compress(reader io.ReadSeeker) (gzipReader io.ReadSeeke
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("gzipCompressSuccess length: ", buffer.Len())
 	return bytes.NewReader(buffer.Bytes()), nil
 }
 
