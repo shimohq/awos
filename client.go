@@ -64,6 +64,8 @@ type Options struct {
 	EnableCompressor bool
 	// CompressType gzip
 	CompressType string
+	// CompressLimit 大于该值之后才压缩 单位字节
+	CompressLimit int
 }
 
 const (
@@ -108,6 +110,9 @@ func New(options *Options) (Client, error) {
 		}
 		if options.EnableCompressor {
 			// 目前仅支持 gzip
+			ossClient.cfg.EnableCompressor = options.EnableCompressor
+			ossClient.cfg.CompressType = options.CompressType
+			ossClient.cfg.CompressLimit = options.CompressLimit
 			if comp, ok := compressors[options.CompressType]; ok {
 				ossClient.compressor = comp
 			} else {

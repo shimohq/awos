@@ -21,6 +21,7 @@ type OSS struct {
 	Bucket     *oss.Bucket
 	Shards     map[string]*oss.Bucket
 	compressor Compressor
+	cfg        *config
 }
 
 func (ossClient *OSS) getBucket(key string) (*oss.Bucket, error) {
@@ -213,8 +214,19 @@ func (ossClient *OSS) Put(key string, reader io.ReadSeeker, meta map[string]stri
 		ossOptions = append(ossOptions, oss.Expires(*putOptions.expires))
 	}
 	if ossClient.compressor != nil {
-		reader, err = ossClient.compressor.Compress(reader)
-		ossOptions = append(ossOptions, oss.ContentEncoding(ossClient.compressor.ContentEncoding()))
+		readSeeker, l, err := GetReaderLength(reader)
+		if err != nil {
+			return err
+		}
+		if l < ossClient.cfg.CompressLimit {
+			reader = readSeeker
+		} else {
+			reader, err = ossClient.compressor.Compress(readSeeker)
+			if err != nil {
+				return err
+			}
+			ossOptions = append(ossOptions, oss.ContentEncoding(ossClient.compressor.ContentEncoding()))
+		}
 	}
 	return retry.Do(func() error {
 		err := bucket.PutObject(key, reader, ossOptions...)

@@ -47,3 +47,11 @@ func (g *GzipCompressor) ContentEncoding() string {
 }
 
 var DefaultGzipCompressor = &GzipCompressor{}
+
+func GetReaderLength(reader io.ReadSeeker) (io.ReadSeeker, int, error) {
+	all, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, 0, err
+	}
+	return bytes.NewReader(all), len(all), nil
+}

@@ -23,6 +23,7 @@ type S3 struct {
 	BucketName   string
 	Client       *s3.S3
 	compressor   Compressor
+	cfg          *config
 }
 
 func (a *S3) getBucket(key string) (string, error) {
@@ -32,10 +33,8 @@ func (a *S3) getBucket(key string) (string, error) {
 		if bucketName == "" {
 			return "", errors.New("shards can't find bucket")
 		}
-
 		return bucketName, nil
 	}
-
 	return a.BucketName, nil
 }
 
@@ -223,7 +222,22 @@ func (a *S3) Put(key string, reader io.ReadSeeker, meta map[string]string, optio
 	if putOptions.expires != nil {
 		input.Expires = putOptions.expires
 	}
-
+	if a.compressor != nil {
+		wrapReader, i, err := GetReaderLength(input.Body)
+		if err != nil {
+			return err
+		}
+		if i < a.cfg.CompressLimit {
+			input.Body = wrapReader
+		} else {
+			input.Body, err = a.compressor.Compress(input.Body)
+			if err != nil {
+				return err
+			}
+			encoding := a.compressor.ContentEncoding()
+			input.ContentEncoding = &encoding
+		}
+	}
 	err = retry.Do(func() error {
 		_, err := a.Client.PutObject(input)
 		if err != nil && reader != nil {
