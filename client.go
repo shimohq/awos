@@ -83,6 +83,8 @@ func New(options *Options) (Client, error) {
 		}
 
 		var ossClient *OSS
+		ossClient.cfg = DefaultConfig()
+		ossClient.cfg.StorageType = StorageTypeOSS
 		if options.Shards != nil && len(options.Shards) > 0 {
 			buckets := make(map[string]*oss.Bucket)
 			for _, v := range options.Shards {
@@ -166,6 +168,8 @@ func New(options *Options) (Client, error) {
 		service := s3.New(session.Must(session.NewSession(config)))
 
 		var s3Client *S3
+		s3Client.cfg = DefaultConfig()
+		s3Client.cfg.StorageType = StorageTypeS3
 		if options.Shards != nil && len(options.Shards) > 0 {
 			buckets := make(map[string]string)
 			for _, v := range options.Shards {
