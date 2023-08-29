@@ -52,6 +52,5 @@ func DefaultConfig() *config {
 		S3HttpTimeoutSecs:       60,
 		EnableTraceInterceptor:  true,
 		EnableMetricInterceptor: true,
-	},
-	}
+	}}
 }
