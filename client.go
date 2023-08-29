@@ -167,9 +167,9 @@ func New(options *Options) (Client, error) {
 		config.HTTPClient = httpClient
 		service := s3.New(session.Must(session.NewSession(config)))
 
-		var s3Client *S3
-		s3Client.cfg = DefaultConfig()
-		s3Client.cfg.StorageType = StorageTypeS3
+		cfg := DefaultConfig()
+		cfg.StorageType = StorageTypeOSS
+		var s3Client = &S3{Client: service, cfg: cfg}
 		if options.Shards != nil && len(options.Shards) > 0 {
 			buckets := make(map[string]string)
 			for _, v := range options.Shards {
@@ -177,15 +177,9 @@ func New(options *Options) (Client, error) {
 					buckets[strings.ToLower(v[i:i+1])] = options.Bucket + "-" + v
 				}
 			}
-			s3Client = &S3{
-				ShardsBucket: buckets,
-				Client:       service,
-			}
+			s3Client.ShardsBucket = buckets
 		} else {
-			s3Client = &S3{
-				BucketName: options.Bucket,
-				Client:     service,
-			}
+			s3Client.BucketName = options.Bucket
 		}
 		if options.EnableCompressor {
 			// 目前仅支持 gzip
@@ -200,6 +194,6 @@ func New(options *Options) (Client, error) {
 		}
 		return s3Client, nil
 	} else {
-		return nil, fmt.Errorf("Unknown StorageType:\"%s\", only supports oss,s3", options.StorageType)
+		return nil, fmt.Errorf(`unknown StorageType:"%s", only supports oss or s3`, options.StorageType)
 	}
 }
