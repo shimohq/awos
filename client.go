@@ -185,6 +185,9 @@ func New(options *Options) (Client, error) {
 		}
 		if options.EnableCompressor {
 			// 目前仅支持 gzip
+			s3Client.cfg.EnableCompressor = options.EnableCompressor
+			s3Client.cfg.CompressType = options.CompressType
+			s3Client.cfg.CompressLimit = options.CompressLimit
 			if comp, ok := compressors[options.CompressType]; ok {
 				s3Client.compressor = comp
 			} else {
