@@ -75,16 +75,15 @@ const (
 // New awos Client instance
 func New(options *Options) (Client, error) {
 	Register(DefaultGzipCompressor)
-	storageType := strings.ToLower(options.StorageType)
-	if storageType == StorageTypeOSS {
+	cfg := DefaultConfig()
+	cfg.StorageType = strings.ToLower(options.StorageType)
+	if cfg.StorageType == StorageTypeOSS {
 		client, err := oss.New(options.Endpoint, options.AccessKeyID, options.AccessKeySecret)
 		if err != nil {
 			return nil, err
 		}
 
-		var ossClient *OSS
-		ossClient.cfg = DefaultConfig()
-		ossClient.cfg.StorageType = StorageTypeOSS
+		var ossClient = &OSS{cfg: cfg}
 		if options.Shards != nil && len(options.Shards) > 0 {
 			buckets := make(map[string]*oss.Bucket)
 			for _, v := range options.Shards {
@@ -96,19 +95,13 @@ func New(options *Options) (Client, error) {
 					buckets[strings.ToLower(v[i:i+1])] = bucket
 				}
 			}
-
-			ossClient = &OSS{
-				Shards: buckets,
-			}
+			ossClient.Shards = buckets
 		} else {
 			bucket, err := client.Bucket(options.Bucket)
 			if err != nil {
 				return nil, err
 			}
-
-			ossClient = &OSS{
-				Bucket: bucket,
-			}
+			ossClient.Bucket = bucket
 		}
 		if options.EnableCompressor {
 			// 目前仅支持 gzip
@@ -122,9 +115,8 @@ func New(options *Options) (Client, error) {
 			}
 		}
 		return ossClient, nil
-	} else if storageType == StorageTypeS3 {
+	} else if cfg.StorageType == StorageTypeS3 {
 		var config *aws.Config
-
 		// use minio
 		if options.S3ForcePathStyle {
 			config = &aws.Config{
@@ -167,8 +159,6 @@ func New(options *Options) (Client, error) {
 		config.HTTPClient = httpClient
 		service := s3.New(session.Must(session.NewSession(config)))
 
-		cfg := DefaultConfig()
-		cfg.StorageType = StorageTypeOSS
 		var s3Client = &S3{Client: service, cfg: cfg}
 		if options.Shards != nil && len(options.Shards) > 0 {
 			buckets := make(map[string]string)
