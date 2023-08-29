@@ -83,8 +83,6 @@ func New(options *Options) (Client, error) {
 		}
 
 		var ossClient *OSS
-		ossClient.cfg = DefaultConfig()
-		ossClient.cfg.StorageType = StorageTypeOSS
 		if options.Shards != nil && len(options.Shards) > 0 {
 			buckets := make(map[string]*oss.Bucket)
 			for _, v := range options.Shards {
@@ -96,9 +94,9 @@ func New(options *Options) (Client, error) {
 					buckets[strings.ToLower(v[i:i+1])] = bucket
 				}
 			}
-
 			ossClient = &OSS{
 				Shards: buckets,
+				cfg:    DefaultConfig(StorageTypeOSS),
 			}
 		} else {
 			bucket, err := client.Bucket(options.Bucket)
@@ -108,6 +106,7 @@ func New(options *Options) (Client, error) {
 
 			ossClient = &OSS{
 				Bucket: bucket,
+				cfg:    DefaultConfig(StorageTypeOSS),
 			}
 		}
 		if options.EnableCompressor {
@@ -168,8 +167,6 @@ func New(options *Options) (Client, error) {
 		service := s3.New(session.Must(session.NewSession(config)))
 
 		var s3Client *S3
-		s3Client.cfg = DefaultConfig()
-		s3Client.cfg.StorageType = StorageTypeS3
 		if options.Shards != nil && len(options.Shards) > 0 {
 			buckets := make(map[string]string)
 			for _, v := range options.Shards {
@@ -180,11 +177,13 @@ func New(options *Options) (Client, error) {
 			s3Client = &S3{
 				ShardsBucket: buckets,
 				Client:       service,
+				cfg:          DefaultConfig(StorageTypeS3),
 			}
 		} else {
 			s3Client = &S3{
 				BucketName: options.Bucket,
 				Client:     service,
+				cfg:        DefaultConfig(StorageTypeS3),
 			}
 		}
 		if options.EnableCompressor {

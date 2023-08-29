@@ -46,12 +46,14 @@ type bucketConfig struct {
 }
 
 // DefaultConfig 返回默认配置
-func DefaultConfig() *config {
+func DefaultConfig(storageType string) *config {
+	if storageType == "" {
+		storageType = "s3"
+	}
 	return &config{bucketConfig: bucketConfig{
-		StorageType:             "s3",
+		StorageType:             storageType,
 		S3HttpTimeoutSecs:       60,
 		EnableTraceInterceptor:  true,
 		EnableMetricInterceptor: true,
-	},
-	}
+	}}
 }
