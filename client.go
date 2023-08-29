@@ -60,6 +60,12 @@ type Options struct {
 	S3HttpTimeoutSecs              int64
 	S3HttpTransportMaxConnsPerHost int
 	S3HttpTransportIdleConnTimeout time.Duration
+	// EnableCompressor
+	EnableCompressor bool
+	// CompressType gzip
+	CompressType string
+	// CompressLimit 大于该值之后才压缩 单位字节
+	CompressLimit int
 }
 
 const (
@@ -68,8 +74,8 @@ const (
 
 // New awos Client instance
 func New(options *Options) (Client, error) {
+	Register(DefaultGzipCompressor)
 	storageType := strings.ToLower(options.StorageType)
-
 	if storageType == StorageTypeOSS {
 		client, err := oss.New(options.Endpoint, options.AccessKeyID, options.AccessKeySecret)
 		if err != nil {
@@ -102,7 +108,17 @@ func New(options *Options) (Client, error) {
 				Bucket: bucket,
 			}
 		}
-
+		if options.EnableCompressor {
+			// 目前仅支持 gzip
+			ossClient.cfg.EnableCompressor = options.EnableCompressor
+			ossClient.cfg.CompressType = options.CompressType
+			ossClient.cfg.CompressLimit = options.CompressLimit
+			if comp, ok := compressors[options.CompressType]; ok {
+				ossClient.compressor = comp
+			} else {
+				fmt.Printf("unknown type is: %s", options.CompressType)
+			}
+		}
 		return ossClient, nil
 	} else if storageType == StorageTypeS3 {
 		var config *aws.Config
@@ -167,7 +183,14 @@ func New(options *Options) (Client, error) {
 				Client:     service,
 			}
 		}
-
+		if options.EnableCompressor {
+			// 目前仅支持 gzip
+			if comp, ok := compressors[options.CompressType]; ok {
+				s3Client.compressor = comp
+			} else {
+				fmt.Printf("unknown type is: %s", options.CompressType)
+			}
+		}
 		return s3Client, nil
 	} else {
 		return nil, fmt.Errorf("Unknown StorageType:\"%s\", only supports oss,s3", options.StorageType)
