@@ -16,6 +16,11 @@ func TestCompress_gzip(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	length, err := GetReaderLength(source)
+	if err != nil {
+		panic(err)
+	}
+	t.Logf("length %d", length)
 	reader, err := DefaultGzipCompressor.Compress(source)
 	if err != nil {
 		panic(err)
