@@ -70,13 +70,11 @@ func (a *S3) GetWithMeta(key string, attributes []string, options ...GetOptions)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
 	}
 	setS3Options(options, input)
-
 	result, err := a.Client.GetObject(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
