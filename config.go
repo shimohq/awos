@@ -42,7 +42,7 @@ type bucketConfig struct {
 	// CompressType gzip
 	CompressType string
 	// CompressLimit 大于该值之后才压缩 单位字节
-	CompressLimit int
+	CompressLimit int64
 }
 
 // DefaultConfig 返回默认配置
