@@ -1,14 +1,10 @@
 package awos
 
 import (
-	"log/slog"
-	"os"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/service/s3"
 )
-
-var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 type HeadGetObjectOutputWrapper struct {
 	getObjectOutput  *s3.GetObjectOutput

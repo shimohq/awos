@@ -221,10 +221,12 @@ func (ossClient *OSS) Put(key string, reader io.ReadSeeker, meta map[string]stri
 		if l < ossClient.cfg.CompressLimit {
 			reader = readSeeker
 		} else {
-			reader, err = ossClient.compressor.Compress(readSeeker)
+			var clen int64
+			reader, clen, err = ossClient.compressor.Compress(readSeeker)
 			if err != nil {
 				return err
 			}
+			ossOptions = append(ossOptions, oss.ContentLength(clen))
 			ossOptions = append(ossOptions, oss.ContentEncoding(ossClient.compressor.ContentEncoding()))
 		}
 	}

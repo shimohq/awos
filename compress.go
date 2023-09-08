@@ -3,7 +3,6 @@ package awos
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"io"
 	"sync"
 )
@@ -21,27 +20,24 @@ func Register(comp Compressor) {
 }
 
 type Compressor interface {
-	Compress(reader io.ReadSeeker) (gzipReader io.ReadSeeker, err error)
+	Compress(reader io.ReadSeeker) (gzipReader io.ReadSeeker, len int64, err error)
 	ContentEncoding() string
 }
 
-type GzipCompressor struct {
-}
+type GzipCompressor struct{}
 
-func (g *GzipCompressor) Compress(reader io.ReadSeeker) (gzipReader io.ReadSeeker, err error) {
-	//	TODO buffer limit
+func (g *GzipCompressor) Compress(reader io.ReadSeeker) (gzipReader io.ReadSeeker, len int64, err error) {
 	var buffer bytes.Buffer
 	gzipWriter := gzip.NewWriter(&buffer)
 	_, err = io.Copy(gzipWriter, reader)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	err = gzipWriter.Close()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	fmt.Println("gzipCompressSuccess length: ", buffer.Len())
-	return bytes.NewReader(buffer.Bytes()), nil
+	return bytes.NewReader(buffer.Bytes()), int64(buffer.Len()), nil
 }
 
 func (g *GzipCompressor) ContentEncoding() string {
