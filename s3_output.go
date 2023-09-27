@@ -26,16 +26,15 @@ func (h *HeadGetObjectOutputWrapper) getContentEncoding() *string {
 }
 
 func (h *HeadGetObjectOutputWrapper) getContentLength() *string {
-	if h.getObjectOutput != nil {
-		if h.getObjectOutput.ContentLength != nil {
-			clStr := strconv.FormatInt(*h.getObjectOutput.ContentLength, 10)
-			return &clStr
-		} else {
-			// 异常情况，理论上不应该出现
-			logger.Warn("getObjectOutput.ContentLength is nil", "getObjectOutput", h.getObjectOutput)
-		}
+	if h.getObjectOutput != nil && h.getObjectOutput.ContentLength != nil {
+		clStr := strconv.FormatInt(*h.getObjectOutput.ContentLength, 10)
+		return &clStr
 	}
-	clStr := strconv.FormatInt(*h.headObjectOutput.ContentLength, 10)
+	if h.headObjectOutput != nil && h.headObjectOutput.ContentLength != nil {
+		clStr := strconv.FormatInt(*h.headObjectOutput.ContentLength, 10)
+		return &clStr
+	}
+	clStr := "0"
 	return &clStr
 }
 

@@ -228,15 +228,15 @@ func (a *S3) Put(key string, reader io.ReadSeeker, meta map[string]string, optio
 		if i < a.cfg.CompressLimit {
 			input.Body = wrapReader
 		} else {
-			var clen int64 // 压缩后的数据长度
-			input.Body, clen, err = a.compressor.Compress(wrapReader)
+			// var clen int64 // 压缩后的数据长度
+			input.Body, _, err = a.compressor.Compress(wrapReader)
 			if err != nil {
 				return err
 			}
 			encoding := a.compressor.ContentEncoding()
 			input.ContentEncoding = &encoding
-			input.SetContentLength(clen)
-			logger.Info("gzipCompressSuccess", "length", clen, "meta", meta)
+			// input.SetContentLength(clen)
+			// logger.Info("gzipCompressSuccess", "length", clen, "meta", meta)
 		}
 	}
 	err = retry.Do(func() error {
