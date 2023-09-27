@@ -6,15 +6,14 @@ Put your environment configuration in ".env-oss"
 
 import (
 	"bytes"
-	"github.com/golang/snappy"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/joho/godotenv"
+	"github.com/golang/snappy"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -32,10 +31,6 @@ var (
 )
 
 func init() {
-	err := godotenv.Overload(".env-oss")
-	if err != nil {
-		panic(err)
-	}
 
 	client, err := New(&Options{
 		StorageType:      os.Getenv("StorageType"),

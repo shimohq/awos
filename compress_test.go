@@ -16,7 +16,7 @@ func TestCompress_gzip(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	reader, err := DefaultGzipCompressor.Compress(source)
+	reader, _, err := DefaultGzipCompressor.Compress(source)
 	if err != nil {
 		panic(err)
 	}
