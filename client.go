@@ -60,6 +60,7 @@ type Options struct {
 	// oss has default timeout, but s3 default timeout is 0 means no timeout.
 	S3HttpTimeoutSecs              int64
 	S3HttpTransportMaxConnsPerHost int
+	S3HttpTransportMaxIdleConns    int
 	S3HttpTransportIdleConnTimeout time.Duration
 	// EnableCompressor
 	EnableCompressor bool
@@ -151,6 +152,9 @@ func New(options *Options) (Client, error) {
 				IdleConnTimeout:   30 * time.Second,
 				MaxConnsPerHost:   options.S3HttpTransportMaxConnsPerHost,
 				ForceAttemptHTTP2: true,
+			}
+			if options.S3HttpTransportMaxIdleConns > 0 {
+				transport.MaxIdleConns = options.S3HttpTransportMaxIdleConns
 			}
 			if options.S3HttpTransportIdleConnTimeout != 0 {
 				transport.IdleConnTimeout = options.S3HttpTransportIdleConnTimeout
