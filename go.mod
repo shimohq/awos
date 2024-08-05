@@ -1,13 +1,12 @@
 module github.com/shimohq/awos/v3
 
-go 1.21
+go 1.17
 
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.6+incompatible
 	github.com/avast/retry-go v2.5.0+incompatible
 	github.com/aws/aws-sdk-go v1.38.52
 	github.com/golang/snappy v0.0.4
-	github.com/joho/godotenv v1.3.0
 	github.com/stretchr/testify v1.8.0
 )
 
