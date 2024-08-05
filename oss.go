@@ -24,6 +24,11 @@ type OSS struct {
 	cfg        *config
 }
 
+func (ossClient *OSS) GetWithMetaGZIP(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
 func (ossClient *OSS) getBucket(key string) (*oss.Bucket, error) {
 	if ossClient.Shards != nil && len(ossClient.Shards) > 0 {
 		keyLength := len(key)

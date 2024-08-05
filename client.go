@@ -19,6 +19,7 @@ type Client interface {
 	Get(key string, options ...GetOptions) (string, error)
 	GetBytes(key string, options ...GetOptions) ([]byte, error)
 	GetAsReader(key string, options ...GetOptions) (io.ReadCloser, error)
+	GetWithMetaGZIP(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error)
 	GetWithMeta(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error)
 	Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
 	Del(key string) error
