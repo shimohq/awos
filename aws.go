@@ -89,6 +89,33 @@ func (a *S3) GetWithMeta(key string, attributes []string, options ...GetOptions)
 	})), err
 }
 
+func (a *S3) GetWithMetaGZIP(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error) {
+	bucketName, err := a.getBucket(key)
+	if err != nil {
+		return nil, nil, err
+	}
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
+	}
+	setS3Options(options, input)
+
+	req, out := a.Client.GetObjectRequest(input)
+	req.HTTPRequest.Header.Add("Accept-Encoding", "gzip")
+	err = req.Send()
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() == s3.ErrCodeNoSuchKey {
+				return nil, nil, nil
+			}
+		}
+		return nil, nil, err
+	}
+	return out.Body, getS3Meta(attributes, mergeHttpStandardHeaders(&HeadGetObjectOutputWrapper{
+		getObjectOutput: out,
+	})), err
+}
+
 func (a *S3) Get(key string, options ...GetOptions) (string, error) {
 	data, err := a.GetBytes(key, options...)
 	if err != nil {

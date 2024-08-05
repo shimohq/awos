@@ -19,6 +19,7 @@ type Client interface {
 	Get(key string, options ...GetOptions) (string, error)
 	GetBytes(key string, options ...GetOptions) ([]byte, error)
 	GetAsReader(key string, options ...GetOptions) (io.ReadCloser, error)
+	GetWithMetaGZIP(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error)
 	GetWithMeta(key string, attributes []string, options ...GetOptions) (io.ReadCloser, map[string]string, error)
 	Put(key string, reader io.ReadSeeker, meta map[string]string, options ...PutOptions) error
 	Del(key string) error
@@ -59,6 +60,7 @@ type Options struct {
 	// oss has default timeout, but s3 default timeout is 0 means no timeout.
 	S3HttpTimeoutSecs              int64
 	S3HttpTransportMaxConnsPerHost int
+	S3HttpTransportMaxIdleConns    int
 	S3HttpTransportIdleConnTimeout time.Duration
 	// EnableCompressor
 	EnableCompressor bool
@@ -150,6 +152,9 @@ func New(options *Options) (Client, error) {
 				IdleConnTimeout:   30 * time.Second,
 				MaxConnsPerHost:   options.S3HttpTransportMaxConnsPerHost,
 				ForceAttemptHTTP2: true,
+			}
+			if options.S3HttpTransportMaxIdleConns > 0 {
+				transport.MaxIdleConns = options.S3HttpTransportMaxIdleConns
 			}
 			if options.S3HttpTransportIdleConnTimeout != 0 {
 				transport.IdleConnTimeout = options.S3HttpTransportIdleConnTimeout
